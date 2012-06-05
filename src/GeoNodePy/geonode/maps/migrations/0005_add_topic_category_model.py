@@ -1,32 +1,61 @@
 # encoding: utf-8
-import datetime
 from south.db import db
-from south.v2 import DataMigration
+from south.v2 import SchemaMigration
 from django.db import models
 
-
-class Migration(DataMigration):
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Because South has issues with fake fields, it includes exclusion
-        # rules for django-taggit. To work around this for a data migration
-        # we just get at the original object to migrate the keywords.
-        from geonode.maps.models import Layer
-        for layer in orm.Layer.objects.all():
-            l = Layer.objects.get(id=layer.id)
-            if layer.keywords_temp is not None and len(layer.keywords_temp.strip()) > 0:
-                for keyword in layer.keywords_temp.split():
-                    l.keywords.add(keyword)
+        # rename to temp - see related changes below in model schema
+        db.rename_column('maps_layer', 'topic_category', 'topic_category_temp')
+        
+        # Adding model 'Topic'
+        db.create_table('maps_topic', (
+            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
+        ))
+        db.send_create_signal('maps', ['Topic'])
+
+        # Adding M2M table for field topic_category on 'Map'
+        db.create_table('maps_map_topic_category', (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('map', models.ForeignKey(orm['maps.map'], null=False)),
+            ('topic', models.ForeignKey(orm['maps.topic'], null=False))
+        ))
+        db.create_unique('maps_map_topic_category', ['map_id', 'topic_id'])
+
+        # Adding M2M table for field topic_category on 'Layer'
+        db.create_table('maps_layer_topic_category', (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('layer', models.ForeignKey(orm['maps.layer'], null=False)),
+            ('topic', models.ForeignKey(orm['maps.topic'], null=False))
+        ))
+        db.create_unique('maps_layer_topic_category', ['layer_id', 'topic_id'])
+        
+        # create all of the topic objects and assign back to the layer
+        for layer in orm.Layer.objects.exclude(topic_category__isnull=True):
+            topic_name = layer.topic_category_temp
+            topic = orm.Topic.objects.get_or_create(name=topic_name)[0]
+            layer.topic_category.add(topic)
+            layer.save()
+        
+        # Deleting field 'Layer.topic_category'
+        db.delete_column('maps_layer', 'topic_category_temp')
 
 
     def backwards(self, orm):
-        from geonode.maps.models import Layer
-        for layer in orm.Layer.objects.all():
-            l = Layer.objects.get(id=layer.id)
-            layer.keywords_temp = ""
-            for keyword in l.keywords.all():
-                layer.keywords_temp += "%s " % keyword
-            layer.save()
+        
+        # Deleting model 'Topic'
+        db.delete_table('maps_topic')
+
+        # Removing M2M table for field topic_category on 'Map'
+        db.delete_table('maps_map_topic_category')
+
+        # Adding field 'Layer.topic_category'
+        db.add_column('maps_layer', 'topic_category', self.gf('django.db.models.fields.CharField')(default='location', max_length=255), keep_default=False)
+
+        # Removing M2M table for field topic_category on 'Layer'
+        db.delete_table('maps_layer_topic_category')
 
 
     models = {
@@ -45,7 +74,7 @@ class Migration(DataMigration):
         },
         'auth.user': {
             'Meta': {'object_name': 'User'},
-            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2012, 6, 7, 8, 39, 2, 253460)'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
             'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
@@ -53,7 +82,7 @@ class Migration(DataMigration):
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2012, 6, 7, 8, 39, 2, 253383)'}),
             'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
             'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
@@ -104,7 +133,6 @@ class Migration(DataMigration):
             'geographic_bounding_box': ('django.db.models.fields.TextField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'keywords_region': ('django.db.models.fields.CharField', [], {'default': "'USA'", 'max_length': '3'}),
-            'keywords_temp': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'language': ('django.db.models.fields.CharField', [], {'default': "'eng'", 'max_length': '3'}),
             'maintenance_frequency': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
@@ -117,7 +145,8 @@ class Migration(DataMigration):
             'temporal_extent_end': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'temporal_extent_start': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
             'title': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'topic_category': ('django.db.models.fields.CharField', [], {'default': "'location'", 'max_length': '255'}),
+            'topic_category': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'maps'", 'blank': 'True', 'to': "orm['maps.Topic']"}),
+            'topic_category_temp': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'typename': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '128'}),
             'uuid': ('django.db.models.fields.CharField', [], {'max_length': '36'}),
             'workspace': ('django.db.models.fields.CharField', [], {'max_length': '128'})
@@ -132,6 +161,7 @@ class Migration(DataMigration):
             'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']", 'null': 'True', 'blank': 'True'}),
             'projection': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
             'title': ('django.db.models.fields.TextField', [], {}),
+            'topic_category': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "'maps'", 'blank': 'True', 'to': "orm['maps.Topic']"}),
             'zoom': ('django.db.models.fields.IntegerField', [], {})
         },
         'maps.maplayer': {
@@ -156,6 +186,11 @@ class Migration(DataMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
             'value': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'})
+        },
+        'maps.topic': {
+            'Meta': {'object_name': 'Topic'},
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'})
         },
         'taggit.tag': {
             'Meta': {'object_name': 'Tag'},

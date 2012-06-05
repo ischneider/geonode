@@ -158,9 +158,9 @@
 
 <h3>{% trans "Layer Information" %}</h3>
 {% if layer.display_type %}<p> <strong>{% trans "Type" %}:</strong> {{ layer.display_type }} </p>{% endif %}
-{% if layer.keywords %}<p> <strong>{% trans "Keywords" %}:</strong> {{ layer.keywords.all|join:", " }}</p>{% endif %}
+{% with layer.keywords.all as kw %}{% if kw %}<p> <strong>{% trans "Keywords" %}:</strong> {{ kw|join:", " }}</p>{% endif %}{% endwith %}
 {% if layer.edition %}<p> <strong>{% trans "Edition" %}:</strong> {{ layer.edition }}</p>{% endif %}
-{% if layer.topic_category %}<p> <strong>{% trans "Topic Category" %}:</strong> {{ layer.topic_category }}</p>{% endif %}
+{% with layer.topic_category.all as topics %}{% if topics %}<p> <strong>{% trans "Topic Category" %}:</strong> {{ topics|join:', ' }}</p>{% endif %}{% endwith %}
 
 {% if layer.constraints_use or layer.constraints_other %}
 <p> <strong>{% trans "Citation" %}:</strong> 

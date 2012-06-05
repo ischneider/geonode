@@ -1331,4 +1331,10 @@ class UtilsTest(TestCase):
 
         self.assertAlmostEqual(sw[0], -180.0, msg="SW lon is correct")
         self.assertAlmostEqual(sw[1], -90.0, msg="SW lat is correct")
-
+        
+class MigrationTest(TestCase):
+    
+    fixtures = ['test_data.json', 'map_data.json']
+    
+    def test_topic_category(self):
+        self.assertEquals(1, Topic.objects.count())

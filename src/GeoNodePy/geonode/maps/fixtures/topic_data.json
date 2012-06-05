@@ -1,0 +1,128 @@
+[
+  {
+    "pk": 1,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Biota"
+    }
+  },
+  {
+    "pk": 2,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Boundaries"
+    }
+  },
+  {
+    "pk": 3,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Climatology Meteorological Atmosphere"
+    }
+  },
+  {
+    "pk": 4,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Economy"
+    }
+  },
+  {
+    "pk": 5,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Elevation"
+    }
+  },
+  {
+    "pk": 6,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Environment"
+    }
+  },
+  {
+    "pk": 7,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Farming"
+    }
+  },
+  {
+    "pk": 8,
+    "model": "maps.topic",
+    "fields": {
+      "name": "GeoscientificInformation"
+    }
+  },
+  {
+    "pk": 9,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Health"
+    }
+  },
+  {
+    "pk": 10,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Imagery Base Maps Earth Cover"
+    }
+  },
+  {
+    "pk": 11,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Inland Waters"
+    }
+  },
+  {
+    "pk": 12,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Intelligence Military"
+    }
+  },
+  {
+    "pk": 13,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Location"
+    }
+  },
+  {
+    "pk": 14,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Oceans"
+    }
+  },
+  {
+    "pk": 15,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Planning CadastreSociety"
+    }
+  },
+  {
+    "pk": 16,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Structure"
+    }
+  },
+  {
+    "pk": 17,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Transportation"
+    }
+  },
+  {
+    "pk": 18,
+    "model": "maps.topic",
+    "fields": {
+      "name": "Utilities Communication"
+    }
+  }
+]

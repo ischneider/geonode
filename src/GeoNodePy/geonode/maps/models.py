@@ -434,28 +434,6 @@ SPATIAL_REPRESENTATION_TYPES = [
     'grid', 'steroModel', 'textTable', 'tin', 'vector'
 ]
 
-TOPIC_CATEGORIES = [
-    'biota',
-    'boundaries',
-    'climatologyMeteorologicalAtmosphere',
-    'economy',
-    'elevation',
-    'environment',
-    'farming',
-    'geoscientificInformation',
-    'health',
-    'imageryBaseMapsEarthCover',
-    'inlandWaters',
-    'intelligenceMilitary',
-    'location',
-    'oceans',
-    'planningCadastre'
-    'society',
-    'structure',
-    'transportation',
-    'utilitiesCommunication'
-]
-
 CONTACT_FIELDS = [
     "name",
     "organization",
@@ -562,6 +540,19 @@ def get_csw():
     csw_url = "%ssrv/en/csw" % settings.GEONETWORK_BASE_URL
     _csw = CatalogueServiceWeb(csw_url)
     return _csw
+
+class TopicManager(models.Manager):
+    def get_by_natural_key(self, key):
+        return self.get(name=key)
+
+class Topic(models.Model):
+    name = models.CharField(max_length=64, unique=True)
+    
+    def natural_key(self):
+        return self.name
+    
+    def __unicode__(self):
+        return self.name
 
 class LayerManager(models.Manager):
     
@@ -696,7 +687,7 @@ class Layer(models.Model, PermissionLevelMixin):
 
     # Section 4
     language = models.CharField(_('language'), max_length=3, choices=ALL_LANGUAGES, default='eng')
-    topic_category = models.CharField(_('topic_category'), max_length=255, choices = [(x, x) for x in TOPIC_CATEGORIES], default = 'location')
+    topic_category = models.ManyToManyField(Topic, verbose_name=_('topic_category'), blank=True, related_name='layers')
 
     # Section 5
     temporal_extent_start = models.DateField(_('temporal extent start'), blank=True, null=True)
@@ -1207,6 +1198,8 @@ class Map(models.Model, PermissionLevelMixin):
     # The last time the map was modified.
     
     keywords = TaggableManager(_('keywords'), help_text=_("A space or comma-separated list of keywords"))
+    
+    topic_category = models.ManyToManyField(Topic, verbose_name=_('topic_category'), blank=True, related_name='maps')
 
     def __unicode__(self):
         return '%s by %s' % (self.title, (self.owner.username if self.owner else "<Anonymous>"))
