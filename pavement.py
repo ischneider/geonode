@@ -1,23 +1,14 @@
 from paver.easy import *
 from paver.easy import options
 from paver.path25 import pushd
-import functools
 import os
 import sys
 import time
-from datetime import date
-import socket
-import ConfigParser
-import paver.doctools
-import paver.misctasks
 import pkg_resources
-import subprocess
 import shutil
-from shutil import move
 import zipfile
 import tarfile
 import urllib
-import glob
 from subprocess import Popen, PIPE
 
 
@@ -295,21 +286,33 @@ def stop_django():
     """
     Stop the GeoNode Django application (with paster)
     """
+    _stop_django()
+    
+def _stop_django():
     kill('paster', 'project.paste')
 
 @task
-def start_geoserver():
+@cmdopts([
+    ('gs_data=', 'd', 'Location of geoserver data directory - must exist')
+])
+def start_geoserver(options):
     """
     Start GeoNode's Java apps (GeoServer with GeoNode extensions and GeoNetwork)
     """
+    gs_data = getattr(options,'gs_data','')
     with pushd('geoserver-geonode-ext'):
-        sh('./startup.sh &')
+        if gs_data and not path(gs_data).exists():
+            raise BuildFailure('specified gs_data directory does not exist')
+        sh('GS_DATA="%s" ./startup.sh &' % gs_data)
 
 @task
 def stop_geoserver():
     """
     Stop GeoNode's Java apps (GeoServer and GeoNetwork)
     """
+    _stop_geoserver()
+    
+def _stop_geoserver():
     kill('jetty', 'java')
 
 @task
@@ -325,13 +328,55 @@ def test_integration(options):
     Run GeoNode's Integration test suite against the external apps
     """
     from time import sleep
-    call_task('reset')
-    call_task('start')
-    #FIXME: Check the server is up instead of a blind sleep
-    sleep(60)
-    with pushd('tests/integration'):
-        sh("python manage.py test")
-    call_task('stop')
+    from geonode.settings import GEOSERVER_BASE_URL
+    from geonode.settings import GEONETWORK_BASE_URL
+    
+    # cleanout testdata and rebuild datadir
+    TEST_DATA = path('build/gs_test_data')
+    if TEST_DATA.exists():
+        TEST_DATA.rmtree()
+    
+    path('geoserver-geonode-ext/src/main/webapp/data/').copytree(TEST_DATA)
+    
+    # start geoserver using test data_dir (relative to geoserver dir)
+    options.gs_data = '../%s' % TEST_DATA
+    
+    reset()
+    start()
+
+    def waitfor(url):
+        started = False
+        for a in xrange(60):
+            resp = None
+            try:
+                resp = urllib.urlopen(GEOSERVER_BASE_URL)
+            except:
+                pass
+            if resp and resp.getcode() == 200:
+                started = True
+                break 
+            sleep(1)
+        return started
+
+    # wait for both to start
+    started = waitfor(GEOSERVER_BASE_URL) & waitfor(GEONETWORK_BASE_URL)
+    fail = not started
+    if not started:
+        print "GeoServer never started properly or timed out..."
+    try:
+        if started:
+            with pushd('tests/integration'):
+                try:
+                    sh("python manage.py test")
+                except BuildFailure:
+                    print 'Tests failed!'
+                    fail = True
+    finally:
+        # don't use call task here - it won't run since it already has
+        _stop_django()
+        _stop_geoserver()
+    if fail:
+        sys.exit(1)
 
 @task
 @needs(['stop'])
@@ -345,6 +390,7 @@ def reset():
     # Rather than just deleting the entire app
     sh("rm -rf build/webapps/geonetwork")
     setup_geonetwork()
+
 
 @task
 def setup_data():
