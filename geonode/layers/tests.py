@@ -724,6 +724,7 @@ class LayersTest(TestCase):
         #Create the rating with the correct content type
         ctype = ContentType.objects.get(model='layer')
         OverallRating.objects.create(category=2,object_id=layer_id,content_type=ctype, rating=3)
+        self.assertEquals(1,OverallRating.objects.filter(category=2,object_id=layer_id,content_type=ctype).count())
 
         c = Client()
     
@@ -733,5 +734,5 @@ class LayersTest(TestCase):
         response = c.post(url)
 
         #Check there are no ratings matching the remove layer
-        rating = OverallRating.objects.filter(category=2,object_id=layer_id)
+        rating = OverallRating.objects.filter(category=2,object_id=layer_id,content_type=ctype)
         self.assertEquals(rating.count(),0)

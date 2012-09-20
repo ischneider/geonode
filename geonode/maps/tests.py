@@ -557,12 +557,13 @@ community."
         #Create the rating with the correct content type
         ctype = ContentType.objects.get(model='map')
         OverallRating.objects.create(category=1,object_id=map_id,content_type=ctype, rating=3)
+        self.assertEquals(1,OverallRating.objects.filter(category=1,object_id=map_id,content_type=ctype).count())
 
         #Remove the map
         response = c.post("/maps/%s/remove" % map_id)
         self.assertEquals(response.status_code,302)
 
         #Check there are no ratings matching the removed map
-        rating = OverallRating.objects.filter(category=1,object_id=map_id)
+        rating = OverallRating.objects.filter(category=1,object_id=map_id,content_type=ctype)
         self.assertEquals(rating.count(),0)
 

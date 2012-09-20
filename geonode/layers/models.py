@@ -573,6 +573,12 @@ def geoserver_pre_delete(instance, sender, **kwargs):
     ct = ContentType.objects.get_for_model(instance)
     OverallRating.objects.filter(content_type = ct, object_id = instance.id).delete()
     instance.delete_from_geoserver()
+    
+    
+def pre_delete_layer(instance, sender, **kwargs):
+    """Handle any layer deletion activities that are separate from geoserver"""
+    ct = ContentType.objects.get_for_model(instance)
+    OverallRating.objects.filter(content_type = ct, object_id = instance.id).delete()
 
 
 def pre_save_layer(instance, sender, **kwargs):
@@ -864,5 +870,6 @@ signals.pre_save.connect(pre_save_layer, sender=Layer)
 
 signals.pre_save.connect(geoserver_pre_save, sender=Layer)
 signals.pre_delete.connect(geoserver_pre_delete, sender=Layer)
+signals.pre_delete.connect(pre_delete_layer, sender=Layer)
 signals.post_save.connect(geoserver_post_save, sender=Layer)
 
