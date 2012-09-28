@@ -51,7 +51,6 @@ def _filter_results(l):
     return not any(p.search(l['name']) for p in extension.exclude_regex)
 
 
-<<<<<<< HEAD
 def _filter_security(q, user, model, permission):
     ct = ContentType.objects.get_for_model(model)
     p = Permission.objects.get(content_type=ct, codename=permission)
@@ -71,9 +70,7 @@ def _add_relevance(q, query, rank_rules):
     # specific SQL - instead test/verify directly using a query and getting SQL
     if 'sqlite' in backend.__name__: return q
     
-=======
 def _add_relevance(query, rank_rules):
->>>>>>> 4a959f5557fcc6f8561d0b76add51a6777b14bd8
     eq = """CASE WHEN %s = '%s' THEN %s ELSE 0 END"""
     frag = """CASE WHEN position(lower('%s') in lower(%s)) >= 1 THEN %s ELSE 0 END"""
     
