@@ -148,3 +148,8 @@ class SilageTest(TestCase):
         self.search_assert(self.request('populartag'), n_results=10, n_total=17)
         self.search_assert(self.request('maptagunique'), n_results=1, n_total=1)
         self.search_assert(self.request('layertagunique'), n_results=1, n_total=1)
+
+    def test_type_query(self):
+        self.search_assert(self.request('common', type='map'), n_results=9, n_total=9)
+        self.search_assert(self.request('common', type='layer'), n_results=5, n_total=5)
+        self.search_assert(self.request('foo', type='owner'), n_results=4, n_total=4)
