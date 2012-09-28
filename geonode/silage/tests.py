@@ -1,5 +1,7 @@
 from geonode.silage import util
 
+from geonode.maps.models import Map
+from geonode.layers.models import Layer
 from django.test import TestCase
 from django.test.client import Client
 import json
@@ -17,6 +19,12 @@ class SilageTest(TestCase):
     def setUpClass(cls):
         "Hook method for setting up class fixture before running tests in the class."
         SilageTest('_fixture_setup')._fixture_setup(True)
+        from django.contrib.auth.models import AnonymousUser
+        u = AnonymousUser()
+        for l in Layer.objects.all():
+            l.set_default_permissions()
+        for m in Map.objects.all():
+            m.set_default_permissions()
 
     @classmethod
     def tearDownClass(cls):

@@ -17,10 +17,16 @@
 #
 #########################################################################
 
+from django.contrib.auth.models import Permission
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.db import backend
 from django.db.models import Q
-from django.contrib.auth.models import User
 
+from geonode.security.models import UserObjectRoleMapping
+from geonode.security.models import GenericObjectRoleMapping
+from geonode.security.models import ANONYMOUS_USERS
+from geonode.security.models import AUTHENTICATED_USERS
 from geonode.maps.models import Layer
 from geonode.maps.models import Map
 from geonode.maps.models import MapLayer
@@ -45,6 +51,20 @@ def _filter_results(l):
     '''If the layer name doesn't match any of the patterns, it shows in the results'''
     return not any(p.search(l['name']) for p in extension.exclude_regex)
 
+
+def _filter_security(q, user, model, permission):
+    ct = ContentType.objects.get_for_model(model)
+    p = Permission.objects.get(content_type=ct, codename=permission)
+    generic_roles = [ANONYMOUS_USERS]
+    if user and not user.is_anonymous():
+        generic_roles.append(AUTHENTICATED_USERS)
+    grm = GenericObjectRoleMapping.objects.filter(object_ct=ct, role__permissions__in=[p], subject__in=generic_roles).values('object_id')
+    q = q.filter(id__in=grm)
+    if user and not user.is_anonymous():
+        urm = UserObjectRoleMapping.objects.filter(object_ct=ct, role__permissions__in=[p], user=user).values('object_id')
+        q = q | q.filter(id__in=urm)
+        q = q | getattr(model, 'objects').filter(owner=user)
+    return q
 
 def _add_relevance(q, query, rank_rules):
     # for unittests, it doesn't make sense to test this as it's postgres
@@ -133,6 +153,8 @@ def _get_owner_results(query):
 def _get_map_results(query):
     q = extension.map_query(query)
     
+    q = _filter_security(q, query.user, Map, 'view_map')
+    
     if query.query:
         q = q.filter(title__icontains=query.query) | \
             q.filter(abstract__icontains=query.query) | \
@@ -168,16 +190,18 @@ def _get_map_results(query):
 def _get_layer_results(query):
     
     q = extension.layer_query(query)
+    
+    q = _filter_security(q, query.user, Layer, 'view_layer')
+    
     if extension.exclude_patterns:
         name_filter = reduce(operator.or_,[ Q(name__regex=f) for f in extension.exclude_patterns])
         q = q.exclude(name_filter)
+        
     if query.query:
         q = q.filter(_build_kw_query(query, query_keywords=True)) | \
             q.filter(name__icontains = query.query) | \
             q.filter(title__icontains=query.query)
-    # we can optimize kw search here
-    # maps will still be slow, but this way all the layers are filtered
-    # bybw before the cruddy in-memory filter
+
     if query.kw:
         q = q.filter(_build_kw_only_query(query.kw))
             
