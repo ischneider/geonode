@@ -36,9 +36,8 @@ import operator
 
 def _rank_rules(model, *rules):
     # prefix field names with model's db table to avoid ambiguity
-    for r in rules:
-        r[0] = '"%s"."%s"' % (model._meta.db_table, r[0])
-    return rules
+    return [('"%s"."%s"' % (model._meta.db_table, r[0]), r[1], r[2])
+            for r in rules]
 
 
 def _filter_results(l):

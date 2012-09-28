@@ -179,30 +179,21 @@ class SilageTest(TestCase):
     def test_relevance(self):
         query = query_from_request(q='foo')
 
-        rules = search._rank_rules(Map, ['title',10, 5], ['abstract',5, 2])
-        sql = search._add_relevance(query, rules)
-        self.assertTrue('THEN 10 ELSE 0' in sql)
-        self.assertTrue('THEN 5 ELSE 0' in sql)
-        self.assertTrue('THEN 2 ELSE 0' in sql)
-        self.assertTrue('title' in sql)
-        self.assertTrue('abstract' in sql)
+        def assert_rules(rules):
+            rank_rules = []
+            for model, model_rules in rules:
+                rank_rules.extend(search._rank_rules(model, *model_rules))
 
-        rules = search._rank_rules(
-                Layer, ['name',10, 1], ['title',10, 5], ['abstract',5, 2])
-        sql = search._add_relevance(query, rules)
-        self.assertTrue('THEN 10 ELSE 0' in sql)
-        self.assertTrue('THEN 1 ELSE 0' in sql)
-        self.assertTrue('THEN 5 ELSE 0' in sql)
-        self.assertTrue('THEN 2 ELSE 0' in sql)
-        self.assertTrue('name' in sql)
-        self.assertTrue('title' in sql)
-        self.assertTrue('abstract' in sql)
+            sql = search._add_relevance(query, rank_rules)
 
-        rules = search._rank_rules(User, ['username', 10, 5]) + \
-                search._rank_rules(Contact, ['organization', 5, 2])
-        sql = search._add_relevance(query, rules)
-        self.assertTrue('THEN 10 ELSE 0' in sql)
-        self.assertTrue('THEN 5 ELSE 0' in sql)
-        self.assertTrue('THEN 2 ELSE 0' in sql)
-        self.assertTrue('username' in sql)
-        self.assertTrue('organization' in sql)
+            for _, model_rules in rules:
+                for attr, rank1, rank2 in model_rules:
+                    self.assertTrue(('THEN %d ELSE 0' % rank1) in sql)
+                    self.assertTrue(('THEN %d ELSE 0' % rank2) in sql)
+                    self.assertTrue(attr in sql)
+
+        assert_rules([(Map, [('title', 10, 5), ('abstract', 5, 2)])])
+        assert_rules([(Layer,
+            [('name', 10, 1), ('title', 10, 5), ('abstract', 5, 2)])])
+        assert_rules([(User, [('username', 10, 5)]),
+                      (Contact, [('organization', 5, 2)])])
