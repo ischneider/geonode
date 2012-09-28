@@ -1,9 +1,12 @@
-from geonode.silage import util
-
-from geonode.maps.models import Map
-from geonode.layers.models import Layer
-from django.test import TestCase
+from django.contrib.auth.models import User
 from django.test.client import Client
+from django.test import TestCase
+from geonode.layers.models import Layer
+from geonode.maps.models import Map
+from geonode.people.models import Contact
+from geonode.silage import search
+from geonode.silage import util
+from geonode.silage.query import query_from_request
 import json
 import logging
 
@@ -158,7 +161,12 @@ class SilageTest(TestCase):
         self.search_assert(self.request('populartag'), n_results=10, n_total=17)
         self.search_assert(self.request('maptagunique'), n_results=1, n_total=1)
         self.search_assert(self.request('layertagunique'), n_results=1, n_total=1)
-        
+
+    def test_type_query(self):
+        self.search_assert(self.request('common', type='map'), n_results=9, n_total=9)
+        self.search_assert(self.request('common', type='layer'), n_results=5, n_total=5)
+        self.search_assert(self.request('foo', type='owner'), n_results=4, n_total=4)
+
     def test_author_endpoint(self):
         resp = self.c.get('/search/api/authors')
         jsobj = json.loads(resp.content)
@@ -173,3 +181,25 @@ class SilageTest(TestCase):
         self.assertEquals(jdate, -105192)
         roundtripped = util.jdate_to_approx_iso_str(jdate)
         self.assertEquals(roundtripped, '-4999-01-03')
+
+    def test_relevance(self):
+        query = query_from_request(q='foo')
+
+        def assert_rules(rules):
+            rank_rules = []
+            for model, model_rules in rules:
+                rank_rules.extend(search._rank_rules(model, *model_rules))
+
+            sql = search._add_relevance(query, rank_rules)
+
+            for _, model_rules in rules:
+                for attr, rank1, rank2 in model_rules:
+                    self.assertTrue(('THEN %d ELSE 0' % rank1) in sql)
+                    self.assertTrue(('THEN %d ELSE 0' % rank2) in sql)
+                    self.assertTrue(attr in sql)
+
+        assert_rules([(Map, [('title', 10, 5), ('abstract', 5, 2)])])
+        assert_rules([(Layer,
+            [('name', 10, 1), ('title', 10, 5), ('abstract', 5, 2)])])
+        assert_rules([(User, [('username', 10, 5)]),
+                      (Contact, [('organization', 5, 2)])])

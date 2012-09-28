@@ -42,9 +42,8 @@ import operator
 
 def _rank_rules(model, *rules):
     # prefix field names with model's db table to avoid ambiguity
-    for r in rules:
-        r[0] = '"%s"."%s"' % (model._meta.db_table, r[0])
-    return rules
+    return [('"%s"."%s"' % (model._meta.db_table, r[0]), r[1], r[2])
+            for r in rules]
 
 
 def _filter_results(l):
@@ -52,6 +51,7 @@ def _filter_results(l):
     return not any(p.search(l['name']) for p in extension.exclude_regex)
 
 
+<<<<<<< HEAD
 def _filter_security(q, user, model, permission):
     ct = ContentType.objects.get_for_model(model)
     p = Permission.objects.get(content_type=ct, codename=permission)
@@ -71,6 +71,9 @@ def _add_relevance(q, query, rank_rules):
     # specific SQL - instead test/verify directly using a query and getting SQL
     if 'sqlite' in backend.__name__: return q
     
+=======
+def _add_relevance(query, rank_rules):
+>>>>>>> 4a959f5557fcc6f8561d0b76add51a6777b14bd8
     eq = """CASE WHEN %s = '%s' THEN %s ELSE 0 END"""
     frag = """CASE WHEN position(lower('%s') in lower(%s)) >= 1 THEN %s ELSE 0 END"""
     
@@ -85,7 +88,15 @@ def _add_relevance(q, query, rank_rules):
             preds.extend( [ frag % (w,r[0],r[2] / 2) for r in rank_rules] )
             
     sql = " + ".join(preds)
-            
+    return sql
+
+
+def _safely_add_relevance(q, query, rank_rules):
+    # for unittests, it doesn't make sense to test this as it's postgres
+    # specific SQL - instead test/verify directly using a query and getting SQL
+    if 'sqlite' in backend.__name__: return q
+
+    sql = _add_relevance(query, rank_rules)
     # ugh - work around bug
     q = q.defer(None)
     return q.extra(select={'relevance':sql})
@@ -146,7 +157,7 @@ def _get_owner_results(query):
         added = extension.owner_rank_rules()
         if added:
             rules = rules + _rank_rules(*added)
-        q = _add_relevance(q, query, rules)
+        q = _safely_add_relevance(q, query, rules)
     return q
 
 
@@ -182,7 +193,7 @@ def _get_map_results(query):
             ['title',10, 5],
             ['abstract',5, 2],
         )
-        q = _add_relevance(q, query, rules)
+        q = _safely_add_relevance(q, query, rules)
 
     return q.distinct()
 
@@ -233,7 +244,7 @@ def _get_layer_results(query):
             ['title',10, 5],
             ['abstract',5, 2],
         )
-        q = _add_relevance(q, query, rules)
+        q = _safely_add_relevance(q, query, rules)
 
     return q.distinct()
                 
