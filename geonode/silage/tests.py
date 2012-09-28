@@ -1,7 +1,12 @@
-from geonode.silage import util
-
-from django.test import TestCase
+from django.contrib.auth.models import User
 from django.test.client import Client
+from django.test import TestCase
+from geonode.layers.models import Layer
+from geonode.maps.models import Map
+from geonode.people.models import Contact
+from geonode.silage import search
+from geonode.silage import util
+from geonode.silage.query import query_from_request
 import json
 import logging
 
@@ -170,3 +175,34 @@ class SilageTest(TestCase):
         self.assertEquals(jdate, -105192)
         roundtripped = util.jdate_to_approx_iso_str(jdate)
         self.assertEquals(roundtripped, '-4999-01-03')
+
+    def test_relevance(self):
+        query = query_from_request(q='foo')
+
+        rules = search._rank_rules(Map, ['title',10, 5], ['abstract',5, 2])
+        sql = search._add_relevance(query, rules)
+        self.assertTrue('THEN 10 ELSE 0' in sql)
+        self.assertTrue('THEN 5 ELSE 0' in sql)
+        self.assertTrue('THEN 2 ELSE 0' in sql)
+        self.assertTrue('title' in sql)
+        self.assertTrue('abstract' in sql)
+
+        rules = search._rank_rules(
+                Layer, ['name',10, 1], ['title',10, 5], ['abstract',5, 2])
+        sql = search._add_relevance(query, rules)
+        self.assertTrue('THEN 10 ELSE 0' in sql)
+        self.assertTrue('THEN 1 ELSE 0' in sql)
+        self.assertTrue('THEN 5 ELSE 0' in sql)
+        self.assertTrue('THEN 2 ELSE 0' in sql)
+        self.assertTrue('name' in sql)
+        self.assertTrue('title' in sql)
+        self.assertTrue('abstract' in sql)
+
+        rules = search._rank_rules(User, ['username', 10, 5]) + \
+                search._rank_rules(Contact, ['organization', 5, 2])
+        sql = search._add_relevance(query, rules)
+        self.assertTrue('THEN 10 ELSE 0' in sql)
+        self.assertTrue('THEN 5 ELSE 0' in sql)
+        self.assertTrue('THEN 2 ELSE 0' in sql)
+        self.assertTrue('username' in sql)
+        self.assertTrue('organization' in sql)
