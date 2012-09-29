@@ -52,6 +52,7 @@ def _filter_results(l):
 
 
 def _filter_security(q, user, model, permission):
+    if user and user.is_superuser: return q
     ct = ContentType.objects.get_for_model(model)
     p = Permission.objects.get(content_type=ct, codename=permission)
     generic_roles = [ANONYMOUS_USERS]
@@ -99,18 +100,26 @@ def _safely_add_relevance(q, query, rank_rules):
     return q.extra(select={'relevance':sql})
 
 
-def _build_kw_query(query, query_keywords=False):
+def _build_map_layer_text_query(q, query, query_keywords=False):
     '''Build an OR query on title and abstract from provided search text.
-    if query_keywords is provided, include a query on the keywords attribute
+    if query_keywords is provided, include a query on the keywords attribute if
+    specified.
     
     return a Q object
     '''
-    subquery = [
-        Q(title__icontains=kw) | Q(abstract__icontains=kw) for kw in query.split_query
-    ]
-    if query_keywords:
+    # title or abstract contains entire phrase
+    subquery = [Q(title__icontains=query.query),Q(abstract__icontains=query.query)]
+    # tile or abstract contains pieces of entire phrase
+    if len(query.split_query) > 1:
+        subquery.extend([Q(title__icontains=kw) for kw in query.split_query])
+        subquery.extend([Q(abstract__icontains=kw) for kw in query.split_query])
+    # or keywords match any pieces of entire phrase
+    if query_keywords and query.split_query:
         subquery.append(_build_kw_only_query(query.split_query))
-    return reduce( operator.or_, subquery)
+    # if any OR phrases exists, build them
+    if subquery:
+        q = q.filter(reduce( operator.or_, subquery))
+    return q
 
 
 def _build_kw_only_query(keywords):
@@ -155,7 +164,8 @@ def _get_owner_results(query):
         if added:
             rules = rules + _rank_rules(*added)
         q = _safely_add_relevance(q, query, rules)
-    return q
+        
+    return q.distinct()
 
 
 def _get_map_results(query):
@@ -163,11 +173,6 @@ def _get_map_results(query):
     
     q = _filter_security(q, query.user, Map, 'view_map')
     
-    if query.query:
-        q = q.filter(title__icontains=query.query) | \
-            q.filter(abstract__icontains=query.query) | \
-            q.filter(_build_kw_query(query, query_keywords=True))
-
     if query.owner:
         q = q.filter(owner__username=query.owner)
 
@@ -181,11 +186,14 @@ def _get_map_results(query):
         q = filter_by_period(Map, q, *query.period)
         
     if query.kw:
-        # this is a somewhat nested query but it performs way faster
+        # this is a somewhat nested query but it performs way faster than
+        # other approaches
         layers_with_kw = Layer.objects.filter(_build_kw_only_query(query.kw)).values('typename')
         map_layers_with = MapLayer.objects.filter(name__in=layers_with_kw).values('map')
         q = q.filter(id__in=map_layers_with)
+        
     if query.query:
+        q = _build_map_layer_text_query(q, query, query_keywords=True)
         rules = _rank_rules(Map,
             ['title',10, 5],
             ['abstract',5, 2],
@@ -205,11 +213,6 @@ def _get_layer_results(query):
         name_filter = reduce(operator.or_,[ Q(name__regex=f) for f in extension.exclude_patterns])
         q = q.exclude(name_filter)
         
-    if query.query:
-        q = q.filter(_build_kw_query(query, query_keywords=True)) | \
-            q.filter(name__icontains = query.query) | \
-            q.filter(title__icontains=query.query)
-
     if query.kw:
         q = q.filter(_build_kw_only_query(query.kw))
             
@@ -236,6 +239,8 @@ def _get_layer_results(query):
         q = q.defer(None).prefetch_related("owner","spatial_temporal_index")
     
     if query.query:
+        q = _build_map_layer_text_query(q, query, query_keywords=True) |\
+            q.filter(name__icontains=query.query) # map doesn't have name
         rules = _rank_rules(Layer,
             ['name',10, 1],
             ['title',10, 5],
@@ -254,7 +259,8 @@ def combined_search_results(query):
     if bytype is None or bytype == u'map':
         results['maps'] = _get_map_results(query)
         
-    if bytype is None or bytype == u'layer':
+    # @todo raster/vector types need to go here
+    if bytype is None or bytype in (u'layer', u'raster', u'vector'):
         results['layers'] = _get_layer_results(query)
         
     if bytype is None or bytype == u'owner':

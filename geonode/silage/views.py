@@ -116,7 +116,7 @@ def search_api(request):
 #    connection.queries = []
     ts = time()
     try:
-        query = query_from_request(**request.REQUEST)
+        query = query_from_request(request)
         items = _search(query)
         ts1 = time() - ts
         ts = time()

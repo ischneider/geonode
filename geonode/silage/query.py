@@ -96,6 +96,8 @@ class Query(object):
         self.type = filters.get('type')
         self.owner = filters.get('owner')
         self.kw = filters.get('kw')
+        if self.kw:
+            self.kw = tuple(self.kw.split(','))
         
         val = filters['period']
         self.period = tuple(val.split(',')) if val else None
@@ -123,8 +125,9 @@ class Query(object):
 
 
     def cache_key(self):
+        # the cache key is based on filters, the user and the text query
         fhash = reduce(operator.xor, map(hash, self.params.items()))
-        return str(fhash ^ hash(self.user) ^ hash(self.query))
+        return str(fhash ^ hash(self.user.username if self.user else 31) ^ hash(self.query))
 
 
 def parse_by_added(spec):
@@ -139,7 +142,8 @@ def parse_by_added(spec):
     return date.today() - td
 
 
-def query_from_request(**params):
+def query_from_request(request):
+    params = request.REQUEST
     
     query = params.get('q', '')
     try:
@@ -176,8 +180,7 @@ def query_from_request(**params):
         if k in params: filters[v] = params[k]
                 
     cache = params.get('cache',True)
-    
     return Query(query, start=start, limit=limit, sort_field=sort_field, 
-                 sort_asc=sort_asc, filters=filters, cache=cache)
+                 sort_asc=sort_asc, filters=filters, cache=cache, user=request.user)
     
     

@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from django.test.client import Client
 from django.test import TestCase
+from geonode.security.models import AUTHENTICATED_USERS
+from geonode.security.models import ANONYMOUS_USERS
 from geonode.layers.models import Layer
 from geonode.maps.models import Map
 from geonode.people.models import Contact
@@ -12,6 +14,16 @@ import logging
 
 logging.getLogger('south').setLevel(logging.INFO)
 
+# quack
+MockRequest = lambda **kw: type('xyz',(object,),{'REQUEST':kw,'user':None})
+
+def all_public():
+    '''ensure all layers and maps are publicly viewable'''
+    for l in Layer.objects.all():
+        l.set_default_permissions()
+    for m in Map.objects.all():
+        m.set_default_permissions()
+
 class SilageTest(TestCase):
 
     c = Client()
@@ -22,12 +34,7 @@ class SilageTest(TestCase):
     def setUpClass(cls):
         "Hook method for setting up class fixture before running tests in the class."
         SilageTest('_fixture_setup')._fixture_setup(True)
-        from django.contrib.auth.models import AnonymousUser
-        u = AnonymousUser()
-        for l in Layer.objects.all():
-            l.set_default_permissions()
-        for m in Map.objects.all():
-            m.set_default_permissions()
+        all_public()
 
     @classmethod
     def tearDownClass(cls):
@@ -56,6 +63,7 @@ class SilageTest(TestCase):
 
     def search_assert(self, response, **options):
         jsonvalue = json.loads(response.content)
+#        import pprint; pprint.pprint(jsonvalue)
         self.assertFalse(jsonvalue.get('errors'))
         self.assertTrue(jsonvalue.get('success'))
 
@@ -158,14 +166,27 @@ class SilageTest(TestCase):
                            first_title='ipsum foo')
 
     def test_keywords(self):
+        # this tests the matching of the general query to keywords
         self.search_assert(self.request('populartag'), n_results=10, n_total=17)
         self.search_assert(self.request('maptagunique'), n_results=1, n_total=1)
         self.search_assert(self.request('layertagunique'), n_results=1, n_total=1)
+        # verify little chunks must entirely match keywords
+        # po ma la are the prefixes to the former keywords :)
+        self.search_assert(self.request('po ma la'), n_results=0, n_total=0)
 
     def test_type_query(self):
         self.search_assert(self.request('common', type='map'), n_results=9, n_total=9)
         self.search_assert(self.request('common', type='layer'), n_results=5, n_total=5)
         self.search_assert(self.request('foo', type='owner'), n_results=4, n_total=4)
+        # there are 8 total layers, half vector, half raster
+        self.search_assert(self.request('', type='raster'), n_results=4, n_total=4)
+        self.search_assert(self.request('', type='vector'), n_results=4, n_total=4)
+        
+    def test_kw_query(self):
+        # a kw-only query should filter out those not matching the keyword
+        self.search_assert(self.request('', kw='here', type='layer'), n_results=1, n_total=1)
+        # no matches
+        self.search_assert(self.request('', kw='foobar', type='layer'), n_results=0, n_total=0)
 
     def test_author_endpoint(self):
         resp = self.c.get('/search/api/authors')
@@ -181,9 +202,39 @@ class SilageTest(TestCase):
         self.assertEquals(jdate, -105192)
         roundtripped = util.jdate_to_approx_iso_str(jdate)
         self.assertEquals(roundtripped, '-4999-01-03')
+        
+    def test_security_trimming(self):
+        try:
+            self.run_security_trimming()
+        finally:
+            all_public()
+            
+    def run_security_trimming(self):
+        # remove permissions on all jblaze layers
+        jblaze_layers = Layer.objects.filter(owner__username='jblaze')
+        hiding = jblaze_layers.count()
+        for l in jblaze_layers:
+            l.set_gen_level(ANONYMOUS_USERS, l.LEVEL_NONE)
+            l.set_gen_level(AUTHENTICATED_USERS, l.LEVEL_NONE)
+        
+        # a (anonymous) layer query should exclude the number of hiding layers
+        self.search_assert(self.request(type='layer'), n_results=8 - hiding, n_total=8 - hiding)
+        
+        # admin sees all
+        self.assertTrue(self.c.login(username='admin', password='admin'))
+        self.search_assert(self.request(type='layer'), n_results=8, n_total=8)
+        self.c.logout()
+        
+        # a logged in jblaze will see his, too
+        jblaze = User.objects.get(username='jblaze')
+        jblaze.set_password('passwd')
+        jblaze.save()
+        self.assertTrue(self.c.login(username='jblaze', password='passwd'))
+        self.search_assert(self.request(type='layer'), n_results=8, n_total=8)
+        self.c.logout()
 
     def test_relevance(self):
-        query = query_from_request(q='foo')
+        query = query_from_request(MockRequest(q='foo'))
 
         def assert_rules(rules):
             rank_rules = []

@@ -283,6 +283,7 @@ TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = [
       '--nocapture',
       '--detailed-errors',
+      '--with-coverage', '--cover-package=geonode.silage',
       ]
 
 #

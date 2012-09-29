@@ -43,7 +43,7 @@ people_data = [
         ]
 
 layer_data = [
-        ('layer1', 'abstract1', 'layer1', 'geonode:layer1', [-180, 180, -90, 90], '19850101', ('populartag',)),
+        ('layer1', 'abstract1', 'layer1', 'geonode:layer1', [-180, 180, -90, 90], '19850101', ('populartag','here')),
         ('layer2', 'abstract2', 'layer2', 'geonode:layer2', [-180, 180, -90, 90], '19800501', ('populartag',)),
         ('uniquetitle', 'something here', 'mylayer', 'geonode:mylayer', [-180, 180, -90, 90], '19901001', ('populartag',)),
         ('common blar', 'lorem ipsum', 'foo', 'geonode:foo', [-180, 180, -90, 90], '19000603', ('populartag', 'layertagunique')),
@@ -83,7 +83,7 @@ def create_models():
             m.keywords.add(kw)
             m.save()
 
-    for ld, owner in zip(layer_data, cycle(users)):
+    for ld, owner, storeType in zip(layer_data, cycle(users), cycle(('raster','vector'))):
         title, abstract, name, typename, (bbox_x0, bbox_x1, bbox_y0, bbox_y1), dt, kws = ld
         year, month, day = map(int, (dt[:4], dt[4:6], dt[6:]))
         start = datetime(year, month, day)
@@ -100,6 +100,7 @@ def create_models():
                   owner=owner,
                   temporal_extent_start=start,
                   temporal_extent_end=end,
+                  storeType=storeType
                   )
         l.save()
         for kw in kws:
