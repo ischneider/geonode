@@ -52,18 +52,29 @@ def _filter_results(l):
 
 
 def _filter_security(q, user, model, permission):
+    '''apply filters to the query that remove those model objects that are
+    not viewable by the given user based on row-level permissions'''
+    # superusers see everything
     if user and user.is_superuser: return q
+    
+    # resolve the model permission
     ct = ContentType.objects.get_for_model(model)
     p = Permission.objects.get(content_type=ct, codename=permission)
+    
+    # apply generic role filters
     generic_roles = [ANONYMOUS_USERS]
     if user and not user.is_anonymous():
         generic_roles.append(AUTHENTICATED_USERS)
     grm = GenericObjectRoleMapping.objects.filter(object_ct=ct, role__permissions__in=[p], subject__in=generic_roles).values('object_id')
     q = q.filter(id__in=grm)
+    
+    # apply specific user filters
     if user and not user.is_anonymous():
         urm = UserObjectRoleMapping.objects.filter(object_ct=ct, role__permissions__in=[p], user=user).values('object_id')
         q = q | q.filter(id__in=urm)
+        # if the user is the owner, make sure these are included
         q = q | getattr(model, 'objects').filter(owner=user)
+    
     return q
 
 def _add_relevance(q, query, rank_rules):
@@ -252,18 +263,27 @@ def _get_layer_results(query):
                 
 
 def combined_search_results(query):
-    results = {}
+    facets = dict([ (k,0) for k in ('map', 'layer', 'vector', 'raster', 'user')])
+    results = {'facets' : facets}
     
     bytype = query.type
     
     if bytype is None or bytype == u'map':
-        results['maps'] = _get_map_results(query)
+        q = _get_map_results(query)
+        facets['map'] = q.count()
+        results['maps'] = q
         
     # @todo raster/vector types need to go here
     if bytype is None or bytype in (u'layer', u'raster', u'vector'):
-        results['layers'] = _get_layer_results(query)
+        q = _get_layer_results(query)
+        facets['layer'] = q.count()
+        facets['raster'] = q.filter(storeType='raster').count()
+        facets['vector'] = q.filter(storeType='vector').count()
+        results['layers'] = q
         
     if bytype is None or bytype == u'owner':
-        results['owners'] = _get_owner_results(query)
+        q = _get_owner_results(query)
+        facets['user'] = q.count()
+        results['owners'] = q
         
     return results

@@ -117,10 +117,10 @@ def search_api(request):
     ts = time()
     try:
         query = query_from_request(request)
-        items = _search(query)
+        items, facets = _search(query)
         ts1 = time() - ts
         ts = time()
-        results = _search_json(query, items, ts1)
+        results = _search_json(query, items, facets, ts1)
         ts2 = time() - ts
         logger.info('generated combined search results in %s, %s',ts1,ts2)
 #        print ts1,ts2, connection.queries.__len__()
@@ -134,7 +134,7 @@ def search_api(request):
         }), status=400)
 
 
-def _search_json(query, items, time):
+def _search_json(query, items, facets, time):
     total = len(items)
     
     if query.limit > 0:
@@ -155,7 +155,8 @@ def _search_json(query, items, time):
         'results' : items,
         'total' :  total,
         'success' : True,
-        'query' : query.params
+        'query' : query.params,
+        'facets' : facets
     }
     return HttpResponse(json.dumps(results), mimetype="application/json")
 
@@ -177,16 +178,18 @@ def _search(query):
         
     if not results:
         results = combined_search_results(query)
+        facets = results['facets']
         results = apply_normalizers(results)
         if query.cache:
-            dumped = zlib.compress(pickle.dumps(results))
+            dumped = zlib.compress(pickle.dumps((results, facets)))
             logger.info("cached search results %s" % len(dumped))
             cache.set(key, dumped, cache_time)
 
     else:
-        results = pickle.loads(zlib.decompress(results))
+        results, facets = pickle.loads(zlib.decompress(results))
 
-    # default sort order by id (could be last_modified when external layers are dealt with)
+    # @todo - sorting should be done in the backend as it can optimize if
+    # the query is restricted to one model. has implications for caching...
     if query.sort == 'title':
         keyfunc = lambda r: r.title().lower()
     elif query.sort == 'last_modified':
@@ -196,7 +199,7 @@ def _search(query):
         keyfunc = lambda r: getattr(r, query.sort)()
     results.sort(key=keyfunc, reverse=not query.order)
     
-    return results
+    return results, facets
 
 
 def author_list(req):
