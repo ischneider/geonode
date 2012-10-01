@@ -35,6 +35,7 @@ from geonode.silage.query import query_from_request
 from geonode.silage.query import BadQuery
 
 from datetime import datetime
+from time import time
 import json
 import cPickle as pickle
 import operator
@@ -110,13 +111,14 @@ def _get_all_keywords():
     return allkw
 
 
-def search_api(request):
-    from time import time
+def search_api(request, **kwargs):
+    if request.method not in ('GET','POST'):
+        return HttpResponse(status=405)
 #    from django.db import connection
 #    connection.queries = []
     ts = time()
     try:
-        query = query_from_request(request)
+        query = query_from_request(request, kwargs)
         items, facets = _search(query)
         ts1 = time() - ts
         ts = time()

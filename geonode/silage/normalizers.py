@@ -142,7 +142,7 @@ class LayerNormalizer(Normalizer):
         return self.o.date
     def populate(self, doc, exclude):
         layer = self.o
-        doc['owner'] = layer.owner.username
+        doc['owner'] = layer.owner.username if layer.owner else None
 #        doc['thumb'] = layer.get_thumbnail_url()
         doc['last_modified'] = extension.date_fmt(layer.date)
         doc['id'] = layer.id

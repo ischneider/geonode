@@ -308,7 +308,7 @@ class LayersTest(TestCase):
     def test_search_api(self):
         '''/data/search/api -> Test accessing the data search api JSON'''
         c = Client()
-        response = c.get('/data/search/api')
+        response = c.get('/search/api/data')
         self.failUnlessEqual(response.status_code, 200)
 
     def test_search_detail(self):

@@ -18,6 +18,7 @@
 #########################################################################
 
 from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.test.client import Client
 from django.test import TestCase
 from geonode.security.models import AUTHENTICATED_USERS
@@ -52,6 +53,8 @@ class SilageTest(TestCase):
     @classmethod
     def setUpClass(cls):
         "Hook method for setting up class fixture before running tests in the class."
+        from django.core.cache import cache
+        cache.clear()
         SilageTest('_fixture_setup')._fixture_setup(True)
         all_public()
 
@@ -86,6 +89,7 @@ class SilageTest(TestCase):
         facets = jsonvalue['facets']
         if 'layer' in facets:
             self.assertEquals(facets['raster'] + facets['vector'], facets['layer'])
+            
 #        import pprint; pprint.pprint(jsonvalue)
         self.assertFalse(jsonvalue.get('errors'))
         self.assertTrue(jsonvalue.get('success'))
@@ -257,7 +261,7 @@ class SilageTest(TestCase):
         self.c.logout()
 
     def test_relevance(self):
-        query = query_from_request(MockRequest(q='foo'))
+        query = query_from_request(MockRequest(q='foo'), {})
 
         def assert_rules(rules):
             rank_rules = []

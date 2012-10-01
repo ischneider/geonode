@@ -22,6 +22,8 @@ from django.conf.urls.defaults import *
 urlpatterns = patterns('geonode.silage.views',
     url(r'^$', 'search_page', name='search'),
     url(r'^api$', 'search_api', name='search_api'),
+    url(r'^api/data$', 'search_api', kwargs={'type':'layer'}, name='layer_search_api'),
+    url(r'^api/maps$', 'search_api', kwargs={'type':'map'}, name='maps_search_api'),
     url(r'^api/authors$', 'author_list', name='search_api_author_list'),
     
     url(r'^layers$', 'search_page', kwargs={'bytype':'layer'}, name='layer_search_page'),

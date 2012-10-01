@@ -142,8 +142,9 @@ def parse_by_added(spec):
     return date.today() - td
 
 
-def query_from_request(request):
-    params = request.REQUEST
+def query_from_request(request, extra):
+    params = dict(request.REQUEST)
+    params.update(extra)
     
     query = params.get('q', '')
     try:
@@ -179,7 +180,7 @@ def query_from_request(request):
     for k,v in aliases.items():
         if k in params: filters[v] = params[k]
                 
-    cache = params.get('cache',True)
+    cache = bool(params.get('cache', True))
     return Query(query, start=start, limit=limit, sort_field=sort_field, 
                  sort_asc=sort_asc, filters=filters, cache=cache, user=request.user)
     
