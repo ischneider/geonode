@@ -139,12 +139,26 @@ class LayerManager(models.Manager):
                 print >> console, msg
         return output
 
+
+class TopicCategory(models.Model):
+
+    name = models.CharField(max_length=50)
+    slug = models.SlugField()
+    description = models.TextField(blank=True)
+
+    def __unicode__(self):
+        return u"{0}".format(self.name)
+
+    class Meta:
+        ordering = ("name",)
+
+
 class ResourceBase(models.Model, PermissionLevelMixin):
     """
     Base Resource Object loosely based on ISO 19115:2003
     """
 
-    VALID_DATE_TYPES = [(x.lower(), _(x)) for x in ['Creation', 'Publication', 'Revision']]
+    VALID_DATE_TYPES = [(x.lower(), _(x)) for x in ['Creation', 'Publication', 'Revision']] 
 
     # internal fields
     uuid = models.CharField(max_length=36)
@@ -174,7 +188,8 @@ class ResourceBase(models.Model, PermissionLevelMixin):
 
     # Section 4
     language = models.CharField(_('language'), max_length=3, choices=ALL_LANGUAGES, default='eng', help_text=_('language used within the dataset'))
-    topic_category = models.CharField(_('topic_category'), max_length=255, choices=TOPIC_CATEGORIES, default='location', help_text=_('high-level geographic data thematic classification to assist in the grouping and search of available geographic data sets.'))
+    topic_category = models.CharField(_('topic_category'), editable=False, max_length=255, choices=TOPIC_CATEGORIES, default='location')
+    category = models.ForeignKey(TopicCategory, help_text=_('high-level geographic data thematic classification to assist in the grouping and search of available geographic data sets.'), null=True)
 
     # Section 5
     temporal_extent_start = models.DateField(_('temporal extent start'), blank=True, null=True, help_text=_('time period covered by the content of the dataset (start)'))
@@ -282,6 +297,9 @@ class Layer(ResourceBase):
     storeType = models.CharField(max_length=128)
     name = models.CharField(max_length=128)
     typename = models.CharField(max_length=128, unique=True)
+
+    popular_count = models.IntegerField(default=0)
+    share_count = models.IntegerField(default=0)
 
     contacts = models.ManyToManyField(Contact, through='ContactRole')
 
@@ -575,10 +593,10 @@ class Link(models.Model):
         * metadata: For CSW links
     """
     layer = models.ForeignKey(Layer)
-    extension = models.CharField(max_length=255, help_text='For example "kml"')
+    extension = models.CharField(max_length=255, help_text=_('For example "kml"'))
     link_type = models.CharField(max_length=255, choices = [(x, x) for x in LINK_TYPES])
-    name = models.CharField(max_length=255, help_text='For example "View in Google Earth"')
-    mime = models.CharField(max_length=255, help_text='For example "text/xml"')
+    name = models.CharField(max_length=255, help_text=_('For example "View in Google Earth"'))
+    mime = models.CharField(max_length=255, help_text=_('For example "text/xml"'))
     url = models.TextField(unique=True, max_length=1000)
 
     objects = LinkManager()

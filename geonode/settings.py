@@ -134,7 +134,9 @@ INSTALLED_APPS = (
     'avatar',
     'dialogos',
     'agon_ratings',
+    'pagination',
     'taggit',
+    'taggit_templatetags',
     'south',
 
     # GeoNode internal apps
@@ -220,6 +222,7 @@ MIDDLEWARE_CLASSES = (
     # The setting below makes it possible to serve different languages per
     # user depending on things like headers in HTTP requests.
     'django.middleware.locale.LocaleMiddleware',
+    'pagination.middleware.PaginationMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
 )
@@ -301,7 +304,7 @@ GEOSERVER_BASE_URL = "http://localhost:8080/geoserver/"
 
 # The username and password for a user that can add and
 # edit layer details on GeoServer
-GEOSERVER_CREDENTIALS = "geoserver_admin", SECRET_KEY
+GEOSERVER_CREDENTIALS = "admin", "geoserver"
 
 # CSW settings
 CATALOGUE = {
@@ -310,7 +313,7 @@ CATALOGUE = {
         # default is pycsw in local mode (tied directly to GeoNode Django DB)
         'ENGINE': 'geonode.catalogue.backends.pycsw_local',
         # pycsw in non-local mode
-        #'ENGINE': 'geonode.catalogue.backends.pycsw',
+        #'ENGINE': 'geonode.catalogue.backends.pycsw_http',
         # GeoNetwork opensource
         #'ENGINE': 'geonode.catalogue.backends.geonetwork',
         # deegree and others
