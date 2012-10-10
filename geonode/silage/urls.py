@@ -25,7 +25,4 @@ urlpatterns = patterns('geonode.silage.views',
     url(r'^api/data$', 'search_api', kwargs={'type':'layer'}, name='layer_search_api'),
     url(r'^api/maps$', 'search_api', kwargs={'type':'map'}, name='maps_search_api'),
     url(r'^api/authors$', 'author_list', name='search_api_author_list'),
-    
-    url(r'^layers$', 'search_page', kwargs={'bytype':'layer'}, name='layer_search_page'),
-    url(r'^maps$', 'search_page', kwargs={'bytype':'map'}, name='maps_search'),
 )
