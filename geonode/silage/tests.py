@@ -18,7 +18,7 @@
 #########################################################################
 
 from django.contrib.auth.models import User
-from django.core.management import call_command
+from django.contrib.contenttypes.models import ContentType
 from django.test.client import Client
 from django.test import TestCase
 from geonode.security.models import AUTHENTICATED_USERS
@@ -29,10 +29,12 @@ from geonode.people.models import Contact
 from geonode.silage import search
 from geonode.silage import util
 from geonode.silage.query import query_from_request
+from agon_ratings.models import OverallRating
 import json
 import logging
 
 logging.getLogger('south').setLevel(logging.INFO)
+logging.getLogger('geonode.silage.views').setLevel(logging.DEBUG)
 
 # quack
 MockRequest = lambda **kw: type('xyz',(object,),{'REQUEST':kw,'user':None})
@@ -119,6 +121,15 @@ class SilageTest(TestCase):
             self.assertTrue(len(jsonvalue['results']) > 0, 'No results found')
             doc = jsonvalue['results'][0]
             self.assertEquals(first_title, doc['title'])
+            
+        sorted_by = options.pop('sorted_by', None)
+        if sorted_by:
+            reversed = sorted_by[0] == '-'
+            sorted_by = sorted_by.replace('-','')
+            sorted_fields = [ jv[sorted_by] for jv in jsonvalue['results'] ]
+            expected = list(sorted_fields)
+            expected.sort(reverse = reversed)
+            self.assertEquals(sorted_fields, expected)
 
 
     def test_limit(self):
@@ -182,15 +193,26 @@ class SilageTest(TestCase):
 
     def test_sort(self):
         self.search_assert(self.request('foo', sort='newest'),
-                           first_title='common double time')
+                           first_title='common double time', sorted_by='-last_modified')
         self.search_assert(self.request('foo', sort='oldest'),
-                           first_title='uniquefirst foo')
+                           first_title='uniquefirst foo', sorted_by='last_modified')
         self.search_assert(self.request('foo', sort='alphaaz'),
-                           first_title='common blar')
+                           first_title='bar baz', sorted_by='title')
         self.search_assert(self.request('foo', sort='alphaza'),
-                           first_title='foo uniquelast')
+                           first_title='uniquefirst foo', sorted_by='-title')
+                           
+        # apply some ratings
+        ct = ContentType.objects.get_for_model(Layer)
+        for l in Layer.objects.all():
+            OverallRating.objects.create(content_type=ct, object_id=l.pk, rating=l.pk, category=2)
+        ct = ContentType.objects.get_for_model(Map)
+        for l in Map.objects.all():
+            OverallRating.objects.create(content_type=ct, object_id=l.pk, rating=l.pk, category=1)
+        # clear any cached ratings
+        from django.core.cache import cache
+        cache.clear()
         self.search_assert(self.request('foo', sort='popularity'),
-                           first_title='ipsum foo')
+                           first_title='common double time', sorted_by='-rating')
 
     def test_keywords(self):
         # this tests the matching of the general query to keywords

@@ -17,6 +17,7 @@
 #
 #########################################################################
 
+from django.db import connection
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.conf import settings
@@ -43,6 +44,7 @@ import logging
 import zlib
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 _extra_context = resolve_extension('extra_context')
 
@@ -114,18 +116,21 @@ def _get_all_keywords():
 def search_api(request, **kwargs):
     if request.method not in ('GET','POST'):
         return HttpResponse(status=405)
-#    from django.db import connection
-#    connection.queries = []
-    ts = time()
+    debug = logger.isEnabledFor(logging.DEBUG)
+    if debug:
+        connection.queries = []
+        ts = time()
     try:
         query = query_from_request(request, kwargs)
         items, facets = _search(query)
-        ts1 = time() - ts
-        ts = time()
+        if debug:
+            ts1 = time() - ts
+            ts = time()
         results = _search_json(query, items, facets, ts1)
-        ts2 = time() - ts
-        logger.info('generated combined search results in %s, %s',ts1,ts2)
-#        print ts1,ts2, connection.queries.__len__()
+        if debug:
+            ts2 = time() - ts
+            logger.debug('generated combined search results in %s, %s',ts1,ts2)
+            logger.debug('with %s db queries',len(connection.queries))
         return results
     except Exception, ex:
         if not isinstance(ex, BadQuery):
@@ -157,7 +162,7 @@ def _search_json(query, items, facets, time):
         'results' : items,
         'total' :  total,
         'success' : True,
-        'query' : query.params,
+        'query' : query.get_query_response(),
         'facets' : facets
     }
     return HttpResponse(json.dumps(results), mimetype="application/json")
@@ -184,7 +189,7 @@ def _search(query):
         results = apply_normalizers(results)
         if query.cache:
             dumped = zlib.compress(pickle.dumps((results, facets)))
-            logger.info("cached search results %s" % len(dumped))
+            logger.debug("cached search results %s", len(dumped))
             cache.set(key, dumped, cache_time)
 
     else:

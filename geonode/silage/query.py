@@ -52,6 +52,8 @@ class BadQuery(Exception):
 
 
 class Query(object):
+    # while these are all class attributes, they will be overwritten
+    
     # search params
     query = None
     'search terms, query, keyword(s)'
@@ -125,9 +127,17 @@ class Query(object):
 
 
     def cache_key(self):
-        # the cache key is based on filters, the user and the text query
+        '''the cache key is based on filters, the user and the text query'''
         fhash = reduce(operator.xor, map(hash, self.params.items()))
         return str(fhash ^ hash(self.user.username if self.user else 31) ^ hash(self.query))
+    
+    
+    def get_query_response(self):
+        '''return a dict containing any non-null parameters used in the search'''
+        q = dict([ kv for kv in self.params.items() if kv[1] ])
+        if self.query:
+            q['query'] = self.query
+        return q
 
 
 def parse_by_added(spec):

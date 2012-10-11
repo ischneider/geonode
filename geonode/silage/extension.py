@@ -25,7 +25,7 @@ from geonode.silage.util import resolve_extension
 from django.conf import settings
 import re
     
-date_fmt = lambda dt: dt.strftime('%b %d %Y')
+date_fmt = lambda dt: dt.isoformat()
 USER_DISPLAY = 'User'
 MAP_DISPLAY = 'Map'
 LAYER_DISPLAY = 'Layer'

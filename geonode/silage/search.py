@@ -267,20 +267,19 @@ def combined_search_results(query):
     results = {'facets' : facets}
     
     bytype = query.type
-    
+
     if bytype is None or bytype == u'map':
         q = _get_map_results(query)
         facets['map'] = q.count()
         results['maps'] = q
-        
-    # @todo raster/vector types need to go here
+
     if bytype is None or bytype in (u'layer', u'raster', u'vector'):
         q = _get_layer_results(query)
         facets['layer'] = q.count()
         facets['raster'] = q.filter(storeType='raster').count()
         facets['vector'] = q.filter(storeType='vector').count()
         results['layers'] = q
-        
+
     if bytype is None or bytype == u'owner':
         q = _get_owner_results(query)
         facets['user'] = q.count()

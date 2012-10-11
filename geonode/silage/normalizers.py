@@ -54,6 +54,7 @@ def _get_ratings(model):
 
 
 def _annotate(normalizers):
+    '''annotate normalizers with any attributes that are better fetched in bulk'''
     if not normalizers: return
     model = type(normalizers[0].o)
     ratings = _get_ratings(model)
@@ -62,6 +63,7 @@ def _annotate(normalizers):
 
 
 def apply_normalizers(results):
+    '''build the appropriate normalizers for the query set(s) and annotate'''
     normalized = []
     mapping = [
         ('maps', MapNormalizer),
@@ -105,6 +107,7 @@ class Normalizer:
             self.dict['relevance'] = getattr(self.o, 'relevance', 0)
             if hasattr(self,'views'):
                 self.dict['views'] = self.views
+            self.dict['rating'] = self.rating
         if exclude:
             for e in exclude:
                 if e in self.dict: self.dict.pop(e)
@@ -172,7 +175,7 @@ class LayerNormalizer(Normalizer):
 
 class OwnerNormalizer(Normalizer):
     def title(self):
-        return self.o.user.username
+        return self.o.user.get_full_name() or self.o.user.username
     def last_modified(self):
         try:
             return self.o.user.date_joined
