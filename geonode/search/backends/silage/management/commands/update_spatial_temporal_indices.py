@@ -20,7 +20,7 @@
 from django.core.management.base import BaseCommand
 from geonode.maps.models import Map
 from geonode.maps.models import Layer
-from geonode.silage.models import index_object
+from geonode.search.backends.silage.models import index_object
 import logging
 from optparse import make_option
 import traceback
@@ -39,7 +39,7 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **opts):
-        logging.getLogger('geonode.silage.models').setLevel(logging.DEBUG)
+        logging.getLogger('geonode.search.backends.silage.models').setLevel(logging.DEBUG)
         update = opts['update']
         def index(o):
             try:

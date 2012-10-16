@@ -17,7 +17,7 @@
 #
 #########################################################################
 
-from geonode.silage.util import resolve_extension
+from geonode.search.backends.silage.util import resolve_extension
 from geonode.utils import _split_query
 
 from django.conf import settings

@@ -72,7 +72,7 @@ urlpatterns = patterns('',
     (r'^maps/', include('geonode.maps.urls')),
     
     # Search
-    (r'^search/', include('geonode.silage.urls')),
+    (r'^search/', include('geonode.search.backends.silage.urls')),
 
     # Social
     (r'^comments/', include('dialogos.urls')),

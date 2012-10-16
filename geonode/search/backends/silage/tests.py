@@ -26,15 +26,15 @@ from geonode.security.models import ANONYMOUS_USERS
 from geonode.layers.models import Layer
 from geonode.maps.models import Map
 from geonode.people.models import Contact
-from geonode.silage import search
-from geonode.silage import util
-from geonode.silage.query import query_from_request
+from geonode.search.backends.silage import search
+from geonode.search.backends.silage import util
+from geonode.search.backends.silage.query import query_from_request
 from agon_ratings.models import OverallRating
 import json
 import logging
 
 logging.getLogger('south').setLevel(logging.INFO)
-logging.getLogger('geonode.silage.views').setLevel(logging.DEBUG)
+logging.getLogger('geonode.search.backends.silage.views').setLevel(logging.DEBUG)
 
 # quack
 MockRequest = lambda **kw: type('xyz',(object,),{'REQUEST':kw,'user':None})

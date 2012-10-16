@@ -145,7 +145,7 @@ INSTALLED_APPS = (
     'geonode.people',
     'geonode.proxy',
     'geonode.security',
-    'geonode.silage',
+    'geonode.search.backends.silage',
     'geonode.catalogue',
 )
 LOGGING = {
@@ -286,7 +286,6 @@ TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = [
       '--nocapture',
       '--detailed-errors',
-      '--with-coverage', '--cover-package=geonode.silage',
       ]
 
 #
