@@ -63,6 +63,7 @@ def layer_type(filename):
     shp_exts = ['.shp',]
     cov_exts = ['.tif', '.tiff', '.geotiff', '.geotif']
     csv_exts = ['.csv']
+    kml_exts = ['.kml']
 
     if extension.lower() == '.zip':
         zf = ZipFile(filename)
@@ -75,7 +76,7 @@ def layer_type(filename):
         finally:
             zf.close()
 
-    if extension.lower() in shp_exts or extension.lower() in csv_exts:
+    if extension.lower() in shp_exts + csv_exts + kml_exts:
          return FeatureType.resource_type
     elif extension.lower() in cov_exts:
          return Coverage.resource_type

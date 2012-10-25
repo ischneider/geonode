@@ -295,6 +295,7 @@ _pages = {
     'shp' : ('time', 'run', 'final'),
     'tif' : ('time', 'run', 'final'),
     'csv' : ('time', 'run', 'final'),
+    'kml' : ('run', 'final'),
 }
 
 if not _ALLOW_TIME_STEP:

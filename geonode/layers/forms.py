@@ -53,7 +53,7 @@ class LayerUploadForm(forms.Form):
         if base_ext.lower() == '.zip':
             # for now, no verification, but this could be unified
             pass
-        elif base_ext.lower() not in (".shp", ".tif", ".tiff", ".geotif", ".geotiff", ".csv"):
+        elif base_ext.lower() not in (".shp", ".tif", ".tiff", ".geotif", ".geotiff", ".csv", ".kml"):
             raise forms.ValidationError("Only Shapefiles, GeoTiffs, and CSV files are supported. You uploaded a %s file" % base_ext)
         if base_ext.lower() == ".shp":
             dbf_file = cleaned["dbf_file"]
