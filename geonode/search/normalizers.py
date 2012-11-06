@@ -144,7 +144,7 @@ class MapNormalizer(Normalizer):
         doc['id'] = mapobj.id
         doc['title'] = mapobj.title
         doc['abstract'] = defaultfilters.linebreaks(mapobj.abstract)
-        doc['topic'] = '', # @todo
+        doc['category'] = mapobj.category,
         doc['detail'] = reverse('map_detail', args=(mapobj.id,))
         doc['owner'] = mapobj.owner.username
 #        doc['owner_detail'] = reverse('about_storyteller', args=(map.owner.username,))
@@ -170,7 +170,7 @@ class LayerNormalizer(Normalizer):
         doc['id'] = layer.id
         doc['_type'] = 'layer'
 #        doc['owsUrl'] = layer.get_virtual_wms_url()
-        doc['topic'] = layer.topic_category
+        doc['category'] = layer.topic_category
         doc['name'] = layer.typename
         doc['abstract'] = defaultfilters.linebreaks(layer.abstract)
         doc['storeType'] = layer.storeType
@@ -180,11 +180,25 @@ class LayerNormalizer(Normalizer):
         doc['keywords'] = layer.keyword_list()
         doc['title'] = layer.title
         doc['detail'] = layer.get_absolute_url()
-        #if 'download_links' not in exclude:
-        #    links = layer.download_links()
-        #    for i,e in enumerate(links):
-        #        links[i] = [ unicode(l) for l in e]
-        #    doc['download_links'] = links
+        if 'download_links' not in exclude:
+            all_links = layer.link_set.all()
+            links = {}
+            for l in layer.link_set.all():
+                link = {}
+                link['name'] = l.name
+                link['extension'] = l.extension
+                link['url'] = l.url
+                link['mime'] = l.mime
+                link['type'] = l.link_type
+                links[l.extension] = link
+            for s in layer.styles.all():
+                link = {}
+                link['name'] = s.name
+                link['url'] = s.sld_url
+                link['type'] = 'style'
+                links['sld'] = link
+            doc['links'] = links
+
         owner = layer.owner
         if owner:
             doc['owner_detail'] = layer.owner.get_absolute_url()
