@@ -23,6 +23,8 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from geonode.sitemap import LayerSitemap, MapSitemap
 import geonode.proxy.urls
+import geonode.maps.urls
+import os
 
 # Import *_signals.py
 import geonode.social_signals
@@ -53,7 +55,7 @@ urlpatterns = patterns('',
 
     # Layer views
     (r'^layers/', include('geonode.layers.urls')),
-    (r'^data/upload/', include('geonode.upload.urls')),
+    (r'^layers/upload/', include('geonode.upload.urls')),
 
     # Map views
     (r'^maps/', include('geonode.maps.urls')),
@@ -92,6 +94,10 @@ urlpatterns = patterns('',
     (r'^admin/', include(admin.site.urls)),
 
     )
+
+
+if getattr(settings, 'USE_NEW_UPLOAD', False):
+    urlpatterns += patterns('',(r'^layers/upload/', include('geonode.upload.urls')))
 
 urlpatterns += geonode.proxy.urls.urlpatterns
 

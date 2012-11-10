@@ -54,6 +54,7 @@ from geonode.layers.enumerations import COUNTRIES, ALL_LANGUAGES, \
 
 from geonode.geoserver.uploader.uploader import Uploader
 from geoserver.catalog import Catalog, FailedRequestError
+
 from taggit.managers import TaggableManager
 from agon_ratings.models import OverallRating
 

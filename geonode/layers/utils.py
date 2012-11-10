@@ -91,7 +91,7 @@ def layer_type(filename):
         try:
             for n in zf.namelist():
                 b, e = os.path.splitext(n.lower())
-                if e in shp_exts or e in cov_exts:
+                if e in shp_exts or e in cov_exts or e in csv_exts:
                     base_name, extension = b,e
         finally:
             zf.close()
@@ -618,7 +618,6 @@ def check_geonode_is_up():
         raise GeoNodeException(msg)
 
 def file_upload(filename, user=None, title=None, overwrite=True, keywords=[]):
-=======
     superusers = User.objects.filter(is_superuser=True).order_by('id')
     if superusers.count() > 0:
         # Return the first created superuser

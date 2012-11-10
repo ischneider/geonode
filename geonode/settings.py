@@ -114,6 +114,7 @@ ROOT_URLCONF = 'geonode.urls'
 # Site id in the Django sites framework
 SITE_ID = 1
 
+USE_NEW_UPLOAD = False
 
 INSTALLED_APPS = (
 
@@ -163,6 +164,13 @@ INSTALLED_APPS = (
     'geonode.search',
     'geonode.catalogue',
 )
+
+if 'USE_NEW_UPLOAD' in os.environ:
+    USE_NEW_UPLOAD = True
+
+if USE_NEW_UPLOAD:
+    INSTALLED_APPS += ('geonode.upload',)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -487,8 +495,6 @@ DB_DATASTORE_TYPE = ''
 DB_DATASTORE_NAME = ''
 
 UPLOADER_SHOW_TIME_STEP = False
-
-#The name of the store in Geoserver
 
 # Load more settings from a file called local_settings.py if it exists
 try:

@@ -37,6 +37,8 @@ class SpatialFile(object):
 
 
 class FileType(object):
+    
+    name = None
 
     code = None
 
@@ -46,7 +48,8 @@ class FileType(object):
 
     layer_type = None
 
-    def __init__(self, code, layer_type, aliases=None, auxillary_file_exts=None):
+    def __init__(self, name, code, layer_type, aliases=None, auxillary_file_exts=None):
+        self.name = name
         self.code = code
         self.layer_type = layer_type
         if auxillary_file_exts:
@@ -70,12 +73,12 @@ class FileType(object):
         return aux_files, slds
 
 
-TYPE_UNKNOWN = FileType("unknown", None)
+TYPE_UNKNOWN = FileType("unknown", None, None)
 
 types = [
-    FileType("shp", vector, auxillary_file_exts=('dbf','shx','prj')),
-    FileType("tif", raster, aliases=('tiff','geotif','geotiff')),
-    FileType("csv", vector),
+    FileType("Shapefile", "shp", vector, auxillary_file_exts=('dbf','shx','prj')),
+    FileType("GeoTIFF", "tif", raster, aliases=('tiff','geotif','geotiff')),
+    FileType("CSV", "csv", vector),
 ]
 
 
@@ -86,11 +89,15 @@ def _contains_bad_names(file_names):
 
 
 def _rename_files(file_names):
+    renamed = []
     for f in file_names:
-        base_name, dirname = os.path.split(f)
+        dirname, base_name = os.path.split(f)
         safe = xml_unsafe.sub("_", base_name)
         if safe != base_name:
-            os.rename(f, os.path.join(dirname, safe))
+            safe = os.path.join(dirname, safe)
+            os.rename(f, safe)
+            renamed.append(safe)
+    return renamed
             
 
 def _find_sld_files(file_names):
