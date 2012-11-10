@@ -4,7 +4,7 @@ from geonode.geoserver.uploader.api import parse_response
 from urlparse import urlparse
 from urllib import urlencode
 import os
-import _util
+import utils 
 import pprint
 import json
 import mimetypes
@@ -53,7 +53,7 @@ class Uploader(object):
         """
         files = [ fpath ]
         if fpath.lower().endswith(".shp"):
-            files = _util.shp_files(fpath)
+            files = utils.shp_files(fpath)
             
         session = self.start_import(import_id)
         session.upload_task(files, use_url)
