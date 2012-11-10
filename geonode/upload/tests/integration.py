@@ -35,9 +35,9 @@ To run these tests, make sure a test db is setup:
 
 Create the admin user as per the above account credentials
 
-Run geoserver and django. Run django like this to activate new uploader:
+Run geoserver and django. Make sure that geonode.upload is in INSTALLED_APPS:
 
-  USE_NEW_UPLOAD= python manage.py runserver
+  paver start 
 
 While geoserver and django are running, run tests:
 
