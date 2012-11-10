@@ -1,6 +1,6 @@
 import httplib2
 import logging
-from gsuploader.api import parse_response
+from geonode.geoserver.uploader.api import parse_response
 from urlparse import urlparse
 from urllib import urlencode
 import os
@@ -9,7 +9,7 @@ import pprint
 import json
 import mimetypes
 
-_logger = logging.getLogger("gsuploader")
+_logger = logging.getLogger(__name__)
 
 class Uploader(object):
 
@@ -36,7 +36,7 @@ class Uploader(object):
     def start_import(self, import_id=None):
         """Create a new import session.
         import_id - optional id to specify
-        returns a gsuploader.api.Session object
+        returns an uploader.api.Session object
         """
         session = self._call(self.client.start_import, import_id)
         if import_id: assert session.id >= import_id
@@ -45,7 +45,7 @@ class Uploader(object):
     def upload(self, fpath, use_url=False, import_id=None):
         """Try a complete import - create a session and upload the provided file.
         fpath can be a path to a zip file or the 'main' file if a shapefile or a tiff
-        returns a gsuploader.api.Session object
+        returns a uploader.api.Session object
         
         use_url - if True, will post a URL to geoserver, not the file itself
                   for now, this only works with actual files, not remote urls

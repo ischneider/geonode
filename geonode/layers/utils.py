@@ -27,7 +27,7 @@ from geonode.catalogue import get_catalogue
 from geonode.people.utils import get_valid_user
 from geonode.layers.models import Layer
 from geonode.people.models import Contact
-from geonode.gs_helpers import cascading_delete, get_sld_for, delete_from_postgis
+from geonode.geoserver.gs_helpers import cascading_delete, get_sld_for, delete_from_postgis
 from geonode.security.models import AUTHENTICATED_USERS, ANONYMOUS_USERS
 # Geoserver functionality
 import geoserver

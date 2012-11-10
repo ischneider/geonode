@@ -29,7 +29,7 @@ from .utils import check_layer, get_web_page
 from geonode.maps.utils import *
 from geonode.catalogue import get_catalogue
 
-from geonode.gs_helpers import cascading_delete, fixup_style
+from geonode.geoserver.gs_helpers import cascading_delete, fixup_style
 import gisdata
 
 import zipfile
@@ -516,7 +516,7 @@ class GeoNodeMapTest(TestCase):
         self.assertRaises(ObjectDoesNotExist,
             lambda: Layer.objects.get(pk=shp_layer_id))
 
-    # geonode.maps.gs_helpers
+    # geonode.geoserver.gs_helpers
 
     def test_cascading_delete(self):
         """Verify that the gs_helpers.cascading_delete() method is working properly

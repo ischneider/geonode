@@ -9,7 +9,7 @@ STATE_RUNNING = "RUNNING"
 STATE_INCOMPLETE = "INCOMPLETE"
 STATE_COMPLETE = "COMPLETE"
 
-_logger = logging.getLogger("gsuploader")
+_logger = logging.getLogger(__name__)
 
 def parse_response(args):
     headers, response = args

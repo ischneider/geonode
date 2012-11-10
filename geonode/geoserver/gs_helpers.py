@@ -4,7 +4,7 @@ import logging
 import re
 from django.conf import settings
 
-logger = logging.getLogger("geonode.maps.gs_helpers")
+logger = logging.getLogger(__name__)
 
 _punc = re.compile(r"[\.:]") #regex for punctuation that confuses restconfig
 _foregrounds = ["#ffbbbb", "#bbffbb", "#bbbbff", "#ffffbb", "#bbffff", "#ffbbff"]

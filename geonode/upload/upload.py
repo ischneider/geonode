@@ -13,7 +13,7 @@ or return response objects.
 State is stored in a UploaderSession object stored in the user's session.
 This needs to be made more stateful by adding a model.
 """
-from geonode.gs_helpers import get_sld_for
+from geonode.geoserver.gs_helpers import get_sld_for
 from geonode.layers.utils import get_valid_layer_name
 from geonode.layers.utils import layer_type
 from geonode.layers.models import Layer
@@ -28,7 +28,7 @@ from geonode.upload.utils import create_geoserver_db_featurestore
 import geoserver
 from geoserver.resource import Coverage
 from geoserver.resource import FeatureType
-from gsuploader.uploader import RequestFailed
+from geonode.geoserver.uploader.uploader import RequestFailed
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 class UploaderSession(object):
     """All objects held must be able to surive a good pickling"""
 
-    # the gsuploader session object
+    # the uploader session object
     import_session = None
 
     # if provided, this file will be uploaded to geoserver and set as
