@@ -196,21 +196,16 @@ LOGGING = {
             'class': 'django.utils.log.AdminEmailHandler',
         }
     },
-    "loggers": {        
-        "django": {
-            "handlers": ["console"],
-            "level": "DEBUG",
-        },
-        "django.request": {
-            "handlers": ["mail_admins"],
-            "level": "ERROR",
-            "propagate": True,
+    'loggers': {
+        'django': {
+            'handlers':['null'],
+            'propagate': True,
+            'level':'INFO',
         },
         "geonode": {
             "handlers": ["console"],
             "level": "ERROR",
         },
-
         "gsconfig.catalog": {
             "handlers": ["console"],
             "level": "ERROR",
