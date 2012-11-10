@@ -154,6 +154,7 @@ INSTALLED_APPS = (
     'announcements',
     'actstream',
     'relationships',
+    'user_messages',
 
     # GeoNode internal apps
     'geonode.maps',
