@@ -165,7 +165,6 @@ INSTALLED_APPS = (
     'geonode.security',
     'geonode.search',
     'geonode.catalogue',
-    'geonode.upload'
 )
 
 LOGGING = {
