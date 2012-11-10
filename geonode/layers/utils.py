@@ -41,7 +41,7 @@ from geonode.utils import check_geonode_is_up
 from geonode.people.utils import get_valid_user
 from geonode.layers.models import Layer
 from geonode.people.models import Profile 
-from geonode.geoserver.gs_helpers import cascading_delete, get_sld_for, delete_from_postgis
+from geonode.geoserver.helpers import cascading_delete, get_sld_for, delete_from_postgis
 from geonode.layers.metadata import set_metadata
 from geonode.people.models import Profile
 from django.contrib.auth.models import User
