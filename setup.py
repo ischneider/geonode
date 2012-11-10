@@ -81,8 +81,6 @@ setup(name='GeoNode',
         "OWSLib==0.5.1",
         "Django==1.4.2",
         "httplib2>=0.7",
-        "beautifulsoup4",
-        "MultipartPostHandler"
         # Django Apps
         "pinax-theme-bootstrap==2.2.1",
         "pinax-theme-bootstrap-account==1.0b2",
