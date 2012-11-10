@@ -1,3 +1,22 @@
+#########################################################################
+#
+# Copyright (C) 2012 OpenPlans
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+#########################################################################
+
 import datetime
 import os
 import subprocess
@@ -306,7 +325,7 @@ def layer_from_viewer_config(model, layer, source, ordering):
     """
     layer_cfg = dict(layer)
     for k in ["format", "name", "opacity", "styles", "transparent",
-                "fixed", "group", "visibility", "title", "source"]:
+                "fixed", "group", "visibility", "title", "source", "getFeatureInfo"]:
         if k in layer_cfg: del layer_cfg[k]
 
     source_cfg = dict(source)
@@ -346,7 +365,7 @@ class GXPMapBase(object):
         layers.extend(added_layers)
         
         server_lookup = {}
-        sources = {'local': settings.DEFAULT_LAYER_SOURCE }
+        sources = { }
 
         def uniqify(seq):
             """

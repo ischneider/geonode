@@ -177,6 +177,7 @@ var GeoExplorer = Ext.extend(gxp.Viewer, {
                 // use django's /geoserver endpoint when talking to the local
                 // GeoServer's RESTconfig API
                 var url = options.url.replace(this.urlPortRegEx, "$1/");
+                /*
                 if (this.localGeoServerBaseUrl) {
                     if (url.indexOf(this.localGeoServerBaseUrl) == 0) {
                         // replace local GeoServer url with /geoserver/
@@ -194,6 +195,7 @@ var GeoExplorer = Ext.extend(gxp.Viewer, {
                         return;
                     }
                 }
+                */
                 // use the proxy for all non-local requests
                 if(this.proxy && options.url.indexOf(this.proxy) !== 0 &&
                         options.url.indexOf(window.location.protocol) === 0) {
@@ -416,6 +418,7 @@ var GeoExplorer = Ext.extend(gxp.Viewer, {
             actionTarget: ["treetbar", "treecontent.contextMenu"]
         }, {
             ptype: "gxp_styler",
+            sameOriginStyling: false,
             rasterStyling: true,
             actionTarget: ["treetbar", "treecontent.contextMenu"]
         }, {
@@ -430,7 +433,7 @@ var GeoExplorer = Ext.extend(gxp.Viewer, {
         });
         GeoExplorer.superclass.loadConfig.apply(this, arguments);
     },
-    
+
     initMapPanel: function() {
         this.mapItems = [{
             xtype: "gx_zoomslider",
@@ -468,7 +471,29 @@ var GeoExplorer = Ext.extend(gxp.Viewer, {
         this.on("ready", function() {
             this.mapPanel.layers.on({
                 "update": function() {this.modified |= 1;},
-                "add": function() {this.modified |= 1;},
+                "add": function(store, records) {
+                    this.modified |= 1;
+                    //Add attribute configuration for added  local layers
+                    for (var i = 0,  ii = records.length; i < ii; ++i) {
+                        var layerRec = records[i];
+                        var layer = layerRec.getLayer();
+                        if (layer.url &&
+                           (layer.url.indexOf(this.localGeoServerBaseUrl) === 0 ||
+                            layer.url.indexOf("/geoserver/wms") === 0)) {
+                            Ext.Ajax.request({
+                                url: this.rest + layer.params.LAYERS + "/attributes",
+                                method: 'POST',
+                                success: function(response, options) {
+                                    var jsonData = Ext.util.JSON.decode(response.responseText);
+                                    if (jsonData && jsonData["getFeatureInfo"]) {
+                                        layerRec.set("getFeatureInfo", jsonData.getFeatureInfo);
+                                    }
+                                },
+                                scope: this
+                            });
+                        }
+                    }
+                },
                 "remove": function(store, rec) {
                     this.modified |= 1;
                 },
@@ -482,7 +507,7 @@ var GeoExplorer = Ext.extend(gxp.Viewer, {
             for (var id in this.layerSources) {
                 source = this.layerSources[id];
                 if (source.store && source instanceof gxp.plugins.WMSSource &&
-                                source.url.indexOf("/geoserver/wms" === 0)) {
+                                source.url.indexOf("/geoserver/wms") === 0) {
                     startSourceId = id;
                 }
             }
@@ -493,6 +518,7 @@ var GeoExplorer = Ext.extend(gxp.Viewer, {
                 if (tool.ptype === "gxp_addlayers") {
                     addLayers = tool;
                     addLayers.startSourceId = startSourceId;
+                    addLayers.catalogSourceKey = startSourceId;
                 }
             }
             if (!this.fromLayer && !this.mapID) {
@@ -605,7 +631,7 @@ var GeoExplorer = Ext.extend(gxp.Viewer, {
                 }
             }
         ];
-        
+
         GeoExplorer.superclass.initPortal.apply(this, arguments);
     },
     
@@ -770,7 +796,7 @@ var GeoExplorer = Ext.extend(gxp.Viewer, {
         if (!this.mapID || as) {
             /* create a new map */ 
             Ext.Ajax.request({
-                url: this.rest,
+                url: this.rest + 'new/data',
                 method: 'POST',
                 jsonData: config,
                 success: function(response, options) {

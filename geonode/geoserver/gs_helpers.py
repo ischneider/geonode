@@ -1,7 +1,27 @@
+#########################################################################
+#
+# Copyright (C) 2012 OpenPlans
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+#########################################################################
+
 from itertools import cycle, izip
 from geoserver.catalog import FailedRequestError
 import logging
 import re
+import errno
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -11,6 +31,7 @@ _foregrounds = ["#ffbbbb", "#bbffbb", "#bbbbff", "#ffffbb", "#bbffff", "#ffbbff"
 _backgrounds = ["#880000", "#008800", "#000088", "#888800", "#008888", "#880088"]
 _marks = ["square", "circle", "cross", "x", "triangle"]
 _style_contexts = izip(cycle(_foregrounds), cycle(_backgrounds), cycle(_marks))
+_default_style_names = ["point", "line", "polygon", "raster"]
 
 def _add_sld_boilerplate(symbolizer):
     """
@@ -134,7 +155,26 @@ def fixup_style(cat, resource, style):
             cat.save(lyr)
             logger.info("Successfully updated %s", lyr)
 
-def cascading_delete(cat, resource):
+def cascading_delete(cat, layer_name):
+    resource = None
+    try:
+        if layer_name.find(':') != -1:
+            workspace, name = layer_name.split(':')
+            ws = cat.get_workspace(workspace)
+            resource = cat.get_resource(name, workspace = workspace)
+        else:
+            resource = cat.get_resource(layer_name)
+    except EnvironmentError, e: 
+      if e.errno == errno.ECONNREFUSED:
+        msg = ('Could not connect to geoserver at "%s"'
+               'to save information for layer "%s"' % (
+               settings.GEOSERVER_BASE_URL, layer_name)
+              )
+        logger.warn(msg, e)
+        return None
+      else:
+        raise e
+
     if resource is None:
         # If there is no associated resource,
         # this method can not delete anything.
@@ -147,8 +187,8 @@ def cascading_delete(cat, resource):
         store = resource.store
         styles = lyr.styles + [lyr.default_style]
         cat.delete(lyr)
-        for s in styles:
-            if s is not None:
+        for s in styles: 
+            if s is not None and s.name not in _default_style_names:
                 try:
                     cat.delete(s, purge=True)
                 except FailedRequestError as e:

@@ -1,0 +1,23 @@
+{% extends "people/base.html" %}
+{% load friendly_loader %} 
+{% friendly_load avatar_tags %}
+{% friendly_load relationship_tags %}
+
+{% block body_class %}profiles{% endblock %}
+
+{% block body %}
+<ul>
+{% for profile in object_list %}
+    {% if profile.user %}
+        <li>
+        {% avatar profile.user 50 %}<a href="{% url profile_detail profile.user.username %}">{{ profile.name }}</a>
+          {% if request.user != profile.user %}
+            {% if_has_tag if_relationship %}
+                {% include "relationships/_profile_follow.html" %}
+            {% endif_has_tag %}
+          {% endif %}
+        </li>
+    {% endif %}
+{% endfor %}
+</ul>
+{% endblock %}

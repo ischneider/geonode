@@ -1,12 +1,33 @@
+#########################################################################
+#
+# Copyright (C) 2012 OpenPlans
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+#########################################################################
+
 from django.conf.urls import include, patterns, url
 from django.conf import settings
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from geonode.sitemap import LayerSitemap, MapSitemap
 import geonode.proxy.urls
-import geonode.maps.urls
 
-# Uncomment the next two lines to enable the admin:
+# Import *_signals.py
+import geonode.social_signals
+
+# Setup Django Admin
 from django.contrib import admin
 admin.autodiscover()
 
@@ -30,27 +51,36 @@ urlpatterns = patterns('',
     url(r'^developer/$', 'django.views.generic.simple.direct_to_template',
                 {'template': 'developer.html'}, name='dev'),
 
-    # Data views
+    # Layer views
+    (r'^layers/', include('geonode.layers.urls')),
     (r'^data/upload/', include('geonode.upload.urls')),
-    (r'^data/', include('geonode.layers.urls')),
 
     # Map views
     (r'^maps/', include('geonode.maps.urls')),
 
-    # Social
-    (r'^comments/', include('dialogos.urls')),
-    (r'^ratings/', include('agon_ratings.urls')),
+    # Catalogue views
+    (r'^catalogue/', include('geonode.catalogue.urls')),
 
-    # Accounts
-    url(r'^accounts/ajax_login$', 'geonode.views.ajax_login',
-                                       name='auth_ajax_login'),
-    url(r'^accounts/ajax_lookup$', 'geonode.views.ajax_lookup',
-                                       name='auth_ajax_lookup'),
-    (r'^accounts/', include('registration.urls')),
-    (r'^profiles/', include('idios.urls')),
+    # Search views
+    (r'^search/', include('geonode.search.urls')),
+
+    # Social views
+    (r"^account/", include("account.urls")),
     (r'^people/', include('geonode.people.urls')),
     (r'^avatar/', include('avatar.urls')),
+    (r'^comments/', include('dialogos.urls')),
+    (r'^ratings/', include('agon_ratings.urls')),
+    (r'^activity/', include('actstream.urls')),
+    (r'^relationships/', include('relationships.urls')),
+    (r'^announcements/', include('announcements.urls')),
+    #(r'^notifications/', include('notification.urls')),
 
+    # Accounts
+    url(r'^account/ajax_login$', 'geonode.views.ajax_login',
+                                       name='account_ajax_login'),
+    url(r'^account/ajax_lookup$', 'geonode.views.ajax_lookup',
+                                       name='account_ajax_lookup'),
+    
     # Meta
     url(r'^lang\.js$', 'django.views.generic.simple.direct_to_template',
          {'template': 'lang.js', 'mimetype': 'text/javascript'}, name='lang'),
@@ -60,6 +90,7 @@ urlpatterns = patterns('',
                                   {'sitemaps': sitemaps}, name='sitemap'),
     (r'^i18n/', include('django.conf.urls.i18n')),
     (r'^admin/', include(admin.site.urls)),
+
     )
 
 urlpatterns += geonode.proxy.urls.urlpatterns
