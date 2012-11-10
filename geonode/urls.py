@@ -95,7 +95,7 @@ urlpatterns = patterns('',
 
 
 if getattr(settings, 'USE_NEW_UPLOAD', False):
-    urlpatterns += patterns('',(r'^upload/', include('geonode.upload.urls')))
+    urlpatterns += patterns('',(r'^layers/upload/', include('geonode.upload.urls')))
 
 urlpatterns += geonode.proxy.urls.urlpatterns
 

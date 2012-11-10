@@ -117,7 +117,7 @@ class Client(object):
                   'next': '/',
                   'password': self.passwd}
         return self.make_request(
-            '/accounts/login/',
+            '/account/login/',
             data=urllib.urlencode(params)
         )
 
@@ -172,7 +172,7 @@ class Client(object):
     def remove_layer(self, layer_name):
         self.login()
         return self.make_request(
-            '/data/geonode:' + layer_name + '/remove',
+            '/layers/geonode:' + layer_name + '/remove',
             data={'csrfmiddlewaretoken': self.get_crsf_token()}
         )
 

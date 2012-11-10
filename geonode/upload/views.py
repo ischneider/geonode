@@ -21,7 +21,7 @@ from geonode.upload import upload
 from geonode.upload import utils
 from geonode.upload.forms import UploadFileForm 
 
-from gsuploader import uploader
+from geonode.geoserver.uploader import uploader
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied

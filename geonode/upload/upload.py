@@ -18,7 +18,7 @@ from geonode.layers.utils import get_valid_layer_name
 from geonode.layers.utils import layer_type
 from geonode.layers.models import Layer
 from geonode.layers.utils import layer_set_permissions
-from geonode.people.models import Contact
+from geonode.people.models import Profile 
 from geonode import GeoNodeException
 from geonode.people.utils import get_default_user
 from geonode.upload.models import Upload
@@ -503,9 +503,9 @@ def final_step(upload_session, user):
     # Create the points of contact records for the layer
     # A user without a profile might be uploading this
     _log('Creating points of contact records for [%s]', name)
-    poc_contact, __ = Contact.objects.get_or_create(user=user,
+    poc_contact, __ = Profile.objects.get_or_create(user=user,
                                            defaults={"name": user.username })
-    author_contact, __ = Contact.objects.get_or_create(user=user,
+    author_contact, __ = Profile.objects.get_or_create(user=user,
                                            defaults={"name": user.username })
     saved_layer.poc = poc_contact
     saved_layer.metadata_author = author_contact

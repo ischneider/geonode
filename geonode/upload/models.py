@@ -1,6 +1,6 @@
 from geonode.maps.models import Layer
 
-from gsuploader.uploader import NotFound
+from geonode.geoserver.uploader.uploader import NotFound
 
 from django.conf import settings
 from django.contrib.auth.models import User

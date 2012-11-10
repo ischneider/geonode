@@ -114,7 +114,8 @@ ROOT_URLCONF = 'geonode.urls'
 # Site id in the Django sites framework
 SITE_ID = 1
 
-USE_NEW_UPLOAD = False
+USE_NEW_UPLOAD = True 
+UPLOADER_SHOW_TIME_STEP = False
 
 INSTALLED_APPS = (
 
@@ -488,8 +489,6 @@ DB_DATASTORE_HOST = ''
 DB_DATASTORE_PORT = ''
 DB_DATASTORE_TYPE = ''
 DB_DATASTORE_NAME = ''
-
-UPLOADER_SHOW_TIME_STEP = False
 
 # Load more settings from a file called local_settings.py if it exists
 try:
