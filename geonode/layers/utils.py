@@ -44,9 +44,6 @@ from geonode.people.models import Profile
 from geonode.geoserver.gs_helpers import cascading_delete, get_sld_for, delete_from_postgis
 from geonode.layers.metadata import set_metadata
 from geonode.people.models import Profile
-from geonode.gs_helpers import cascading_delete
-from geonode.gs_helpers import get_sld_for
-from geonode.gs_helpers import delete_from_postgis
 from django.contrib.auth.models import User
 from geonode.security.models import AUTHENTICATED_USERS, ANONYMOUS_USERS
 # Geoserver functionality
