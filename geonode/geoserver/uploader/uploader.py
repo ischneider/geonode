@@ -1,13 +1,15 @@
 import httplib2
 import logging
-from geonode.geoserver.uploader.api import parse_response
-from urlparse import urlparse
-from urllib import urlencode
 import os
-import utils 
 import pprint
 import json
 import mimetypes
+
+from urlparse import urlparse
+from urllib import urlencode
+
+from geonode.geoserver.uploader.api import parse_response
+from geonode.geoserver.uploader.utils import shp_files 
 
 _logger = logging.getLogger(__name__)
 
@@ -53,7 +55,7 @@ class Uploader(object):
         """
         files = [ fpath ]
         if fpath.lower().endswith(".shp"):
-            files = utils.shp_files(fpath)
+            files = shp_files(fpath)
             
         session = self.start_import(import_id)
         session.upload_task(files, use_url)

@@ -18,7 +18,7 @@ from geonode.utils import json_response
 from geonode.upload import forms
 from geonode.upload.models import Upload, UploadFile
 from geonode.upload import upload
-from geonode.upload import utils
+from geonode.upload.utils import rename_and_prepare, find_sld, get_upload_type
 from geonode.upload.forms import UploadFileForm 
 
 from geonode.geoserver.uploader import uploader
@@ -150,12 +150,12 @@ def save_step_view(req, session):
     tempdir = None
     if form.is_valid():
         tempdir, base_file = form.write_files()
-        base_file = utils.rename_and_prepare(base_file)
+        base_file = rename_and_prepare(base_file)
         name, ext = os.path.splitext(os.path.basename(base_file))
         import_session = upload.save_step(req.user, name, base_file, overwrite=False)
-        sld = utils.find_sld(base_file)
+        sld = find_sld(base_file)
         logger.info('provided sld is %s' % sld)
-        upload_type = utils.get_upload_type(base_file)
+        upload_type = get_upload_type(base_file)
         upload_session = req.session[_SESSION_KEY] = upload.UploaderSession(
             tempdir=tempdir,
             base_file=base_file,

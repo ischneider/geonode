@@ -1,13 +1,14 @@
 import os.path
-from geonode.maps.models import Layer
-from geoserver.catalog import FailedRequestError
+import os
+import re
+import logging
+
+from zipfile import ZipFile
 
 from django.conf import settings
 
-import os
-import re
-from zipfile import ZipFile
-import logging
+from geonode.layers.models import Layer
+from geoserver.catalog import FailedRequestError
 
 
 def get_upload_type(filename):
