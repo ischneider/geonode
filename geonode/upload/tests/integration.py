@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.conf.urls import patterns
 from django.core.urlresolvers import reverse
+from geonode.geoserver.helpers import cascading_delete
 from geonode.layers.models import Layer
 from geonode.urls import include
 from geonode.urls import urlpatterns
@@ -46,9 +47,6 @@ While geoserver and django are running, run tests:
 
 # hack the global urls to ensure we're activated locally
 urlpatterns += patterns('',(r'^layers/upload/', include('geonode.upload.urls')))
-
-# delete all layers first
-Layer.objects.filter().delete()
 
 def upload_step(step=None):
     step = reverse('data_upload',args=[step] if step else [])
@@ -192,6 +190,15 @@ class GeoNodeTest(TestCase):
 
 
 class TestUpload(GeoNodeTest):
+    def setUp(self):
+        super(TestUpload, self).setUp()
+        # @todo - this is obviously the brute force approach - ideally,
+        # these cases would be more declarative and delete only the things
+        # they mess with
+        Layer.objects.all().delete()
+        # and destroy anything left dangling on geoserver
+        cat = Layer.objects.gs_catalog
+        map(lambda name: cascading_delete(cat, name), [l.name for l in cat.get_layers()])
 
     def check_layer_geonode_page(self, path):
         """ Check that the final layer page render's correctly after
