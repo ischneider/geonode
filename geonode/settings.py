@@ -117,6 +117,10 @@ SITE_ID = 1
 # Show the Time Step in the Uploader (mapstory specific for now)
 UPLOADER_SHOW_TIME_STEP = False
 
+# Login and logout urls override
+LOGIN_URL = '/account/login/'
+LOGOUT_URL = '/account/logout/'
+
 INSTALLED_APPS = (
 
     # Apps bundled with Django
@@ -139,6 +143,7 @@ INSTALLED_APPS = (
     'south',
     'friendlytagloader',
     'leaflet',
+    'request',
 
     # Theme
     "pinax_theme_bootstrap_account",
@@ -165,6 +170,7 @@ INSTALLED_APPS = (
     'geonode.security',
     'geonode.search',
     'geonode.catalogue',
+    'geonode.documents',
 )
 
 LOGGING = {
@@ -242,6 +248,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'request.middleware.RequestMiddleware',
     # The setting below makes it possible to serve different languages per
     # user depending on things like headers in HTTP requests.
     'django.middleware.locale.LocaleMiddleware',
@@ -256,9 +263,7 @@ MIDDLEWARE_CLASSES = (
 AUTHENTICATION_BACKENDS = ('geonode.security.auth.GranularBackend',)
 
 def get_user_url(u):
-    from django.contrib.sites.models import Site
-    s = Site.objects.get_current()
-    return "http://" + s.domain + "/profiles/" + u.username
+    return u.profile.get_absolute_url() 
 
 
 ABSOLUTE_URL_OVERRIDES = {
@@ -269,6 +274,11 @@ ABSOLUTE_URL_OVERRIDES = {
 # FIXME(Ariel): I do not know why this setting is needed,
 # it would be best to use the ?next= parameter
 LOGIN_REDIRECT_URL = "/"
+
+#
+# Settings for default search size
+#
+DEFAULT_SEARCH_SIZE = 10
 
 
 #
