@@ -121,6 +121,9 @@ UPLOADER_SHOW_TIME_STEP = False
 LOGIN_URL = '/account/login/'
 LOGOUT_URL = '/account/logout/'
 
+# Activate the Documents application
+DOCUMENTS_APP = True
+
 INSTALLED_APPS = (
 
     # Apps bundled with Django
@@ -170,9 +173,11 @@ INSTALLED_APPS = (
     'geonode.security',
     'geonode.search',
     'geonode.catalogue',
-    'geonode.documents',
 )
 
+if DOCUMENTS_APP:
+    INSTALLED_APPS += ('geonode.documents',)
+    
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,

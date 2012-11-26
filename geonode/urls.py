@@ -58,9 +58,6 @@ urlpatterns = patterns('',
     # Map views
     (r'^maps/', include('geonode.maps.urls')),
 
-    #Documents views
-    (r'^documents/', include('geonode.documents.urls')),
-
     # Catalogue views
     (r'^catalogue/', include('geonode.catalogue.urls')),
 
@@ -95,6 +92,12 @@ urlpatterns = patterns('',
     (r'^i18n/', include('django.conf.urls.i18n')),
     (r'^admin/', include(admin.site.urls)),
 
+    )
+
+#Documents views
+if settings.DOCUMENTS_APP:
+    urlpatterns += patterns('',
+        (r'^documents/', include('geonode.documents.urls')),
     )
 
 urlpatterns += geonode.proxy.urls.urlpatterns
