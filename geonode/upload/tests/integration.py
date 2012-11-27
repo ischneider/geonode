@@ -46,7 +46,7 @@ While geoserver and django are running, run tests:
 '''
 
 # hack the global urls to ensure we're activated locally
-urlpatterns += patterns('',(r'^layers/upload/', include('geonode.upload.urls')))
+urlpatterns += patterns('',(r'^upload/', include('geonode.upload.urls')))
 
 def upload_step(step=None):
     step = reverse('data_upload',args=[step] if step else [])
