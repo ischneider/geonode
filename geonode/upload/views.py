@@ -398,6 +398,7 @@ _steps = {
 _pages = {
     'shp' : ('srs', 'time', 'run', 'final'),
     'tif' : ('time', 'run', 'final'),
+    'kml' : ('run', 'final'),
     'csv' : ('csv', 'time', 'run', 'final'),
 }
 

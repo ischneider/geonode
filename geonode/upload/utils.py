@@ -18,7 +18,7 @@ def get_upload_type(filename):
     base_name, extension = os.path.splitext(filename)
     extension = extension[1:].lower()
     
-    possible_types = set(('shp','csv','tif'))
+    possible_types = set(('shp','csv','tif', 'kml'))
     
     if extension == 'zip':
         zf = ZipFile(filename, 'r')
