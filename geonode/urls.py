@@ -53,7 +53,6 @@ urlpatterns = patterns('',
 
     # Layer views
     (r'^layers/', include('geonode.layers.urls')),
-    (r'^layers/upload/', include('geonode.upload.urls')),
 
     # Map views
     (r'^maps/', include('geonode.maps.urls')),
@@ -63,6 +62,9 @@ urlpatterns = patterns('',
 
     # Search views
     (r'^search/', include('geonode.search.urls')),
+
+    # Upload views
+    (r'^upload/', include('geonode.upload.urls')),
 
     # Social views
     (r"^account/", include("account.urls")),
