@@ -3,8 +3,16 @@
 
 {% block title %} {% trans "Upload Layer" %} - {{ block.super }} {% endblock %}
 
+{% block head %}
+{% include "geonode/ext_header.html" %}
+{% include "geonode/app_header.html" %}
+{% include "geonode/geo_header.html" %}
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}geonode/css/fileuploadfield.css"/>
+<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}geonode/css/style.css"/>
+{{ block.super }}
+{% endblock %}
+
 {% block body %}
-<div class="twocol">
   <h2> {% trans "Provide CRS for " %} "{{ layer_name }}" </h2>
 
   <form method="POST" id="crsForm">
@@ -31,9 +39,8 @@
     </p>
     {% endif %}
   </form>
-  <script type="text/javascript" src="{{ STATIC_URL }}script/upload_common.js"></script>
+  <script type="text/javascript" src="{{ STATIC_URL }}geonode/js/upload_common.js"></script>
   <script type="text/javascript">
       enableUploadProgress('crsForm');
   </script>
-</div>
 {% endblock %}
