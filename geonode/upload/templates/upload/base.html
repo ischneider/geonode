@@ -1,4 +1,5 @@
-{% extends "base.html" %}
+{% extends "site_base.html" %}
+{% comment %}
 {% load i18n %}
 {% block title %} {% trans "Upload Data" %} - {{ block.super }} {% endblock %}
 {% block extra_script %}
@@ -25,3 +26,4 @@
         </div>
     </div>
 {% endblock %}
+{% endcomment %}
