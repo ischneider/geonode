@@ -33,21 +33,6 @@ GEOSERVER_USER, GEOSERVER_PASSWD = settings.GEOSERVER_CREDENTIALS
 import logging
 logging.getLogger('south').setLevel(logging.WARNING)
 
-'''
-To run these tests, make sure a test db is setup:
-  python manage.py syncdb --all
-
-Create the admin user as per the above account credentials
-
-Run geoserver and django. Make sure that geonode.upload is in INSTALLED_APPS:
-
-  paver start 
-
-While geoserver and django are running, run tests:
-
-  python manage.py test geonode.upload.integrationtests
-'''
-
 # hack the global urls to ensure we're activated locally
 urlpatterns += patterns('',(r'^upload/', include('geonode.upload.urls')))
 
@@ -75,6 +60,7 @@ def get_wms(version='1.1.1',layer_name=None):
         password=GEOSERVER_PASSWD
     )
 
+print Layer.objects.all().count()
 
 class Client(object):
     """client for making http requests"""
@@ -190,10 +176,43 @@ class GeoNodeTest(TestCase):
         )
         super(GeoNodeTest, self).setUp()
 
-
-
-
 class TestUpload(GeoNodeTest):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestUpload, cls).setUpClass()
+        test_settings = None
+        try:
+            from geonode.upload.tests import test_settings
+        except:
+            pass
+        if test_settings:
+            print 'applying test settings module', test_settings.__file__
+            new_settings = filter(lambda kv: kv[0][0] != '_', vars(test_settings).items())
+            old_settings = [(kv[0],getattr(settings, kv[0], None)) for kv in new_settings]
+            for i in new_settings:
+                print 'setting %s=%s' % i
+                setattr(settings, *i)
+            cls._old_settings = old_settings
+
+        if Layer.objects.all().count():
+            if 'DELETE_LAYERS' not in os.environ:
+                print
+                print 'FAIL: There are layers in the test database'
+                print 'Will not run integration tests unless `DELETE_LAYERS`'
+                print 'Is specified as an environment variable'
+                print
+                raise Exception('FAIL, SEE ABOVE')
+
+        settings.UPLOADER_SHOW_TIME_STEP = False
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestUpload, cls).tearDownClass()
+        for i in getattr(cls, '_old_settings', []):
+            setattr(settings, *i)
+        settings.UPLOADER_SHOW_TIME_STEP = True
+
     def setUp(self):
         super(TestUpload, self).setUp()
         # @todo - this is obviously the brute force approach - ideally,
@@ -363,6 +382,9 @@ class TestUpload(GeoNodeTest):
         self.upload_file(abspath, self.complete_upload,
                          check_name='san_andres_y_providencia_poi')
 
+        os.unlink(abspath)
+
+
     def test_invalid_layer_upload(self):
         """ Tests the layers that are invalid and should not be uploaded"""
         # this issue with this test is that the importer supports
@@ -454,6 +476,8 @@ class TestUpload(GeoNodeTest):
 
         self.check_layer_complete(resp.geturl(), layer_name)
 
+        os.unlink(csv_file)
+
 
     @override_settings(UPLOADER_SHOW_TIME_STEP=True)
     def test_time(self):
@@ -461,6 +485,8 @@ class TestUpload(GeoNodeTest):
         if not settings.DB_DATASTORE:
             print '\nNo DB_DATASTORE configured, skipping CSV tests'
             return
+
+        self.assertEquals(settings.UPLOADER_SHOW_TIME_STEP, True)
 
         timedir = os.path.join(GOOD_DATA, 'time')
         self.client.login()
