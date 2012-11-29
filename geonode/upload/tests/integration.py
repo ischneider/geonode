@@ -15,12 +15,14 @@ from owslib.wms import WebMapService
 from unittest import TestCase
 import MultipartPostHandler
 import csv
+import glob
 import json
 import os
 import tempfile
 import time
 import urllib
 import urllib2
+from zipfile import ZipFile
 
 GEONODE_USER     = 'admin'
 GEONODE_PASSWD   = 'admin'
@@ -148,7 +150,7 @@ class Client(object):
         try:
             return (resp, json.loads(data))
         except ValueError:
-            raise ValueError('probably not json', data)
+            raise ValueError('probably not json, status %s' % resp.getcode(), data)
 
     def get_html(self, path):
         """ Method that make a get request and passes the results to bs4
@@ -332,13 +334,34 @@ class TestUpload(GeoNodeTest):
             self.wait_for_progress(data.get('progress'))
             final_check(base, resp, data)
 
-    def test_successful_layer_upload(self):
-        """ Tests if layers can be upload to a running GeoNode GeoServer"""
-        Layer.objects.filter(title='single_point').delete()
-        vector_path = os.path.join(GOOD_DATA, 'vector')
-        raster_path = os.path.join(GOOD_DATA, 'raster')
-        self.upload_folder_of_files(vector_path, self.complete_upload)
-        self.upload_folder_of_files(raster_path, self.complete_raster_upload)
+    def upload_file(self, fname, final_check, check_name=None):
+        self.client.login()
+        if not check_name:
+            check_name, _ = os.path.splitext(fname)
+        resp, data = self.client.upload_file(fname)
+        self.wait_for_progress(data.get('progress'))
+        final_check(check_name, resp, data)
+
+    def test_shp_upload(self):
+        """ Tests if a vector layer can be upload to a running GeoNode GeoServer"""
+        fname = os.path.join(GOOD_DATA, 'vector', 'san_andres_y_providencia_water.shp')
+        self.upload_file(fname, self.complete_upload)
+
+    def test_raster_upload(self):
+        """ Tests if a vector layer can be upload to a running GeoNode GeoServer"""
+        fname = os.path.join(GOOD_DATA, 'raster', 'relief_san_andres.tif')
+        self.upload_file(fname, self.complete_raster_upload)
+
+    def test_zipped_upload(self):
+        fd, abspath = tempfile.mkstemp('.zip')
+        fp = os.fdopen(fd,'wb')
+        zf = ZipFile(fp, 'w')
+        fpath = os.path.join(GOOD_DATA, 'vector', 'san_andres_y_providencia_poi.*')
+        for f in glob.glob(fpath):
+            zf.write(f, os.path.basename(f))
+        zf.close()
+        self.upload_file(abspath, self.complete_upload,
+                         check_name='san_andres_y_providencia_poi')
 
     def test_invalid_layer_upload(self):
         """ Tests the layers that are invalid and should not be uploaded"""
