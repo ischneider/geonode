@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.conf.urls import patterns
 from django.core.urlresolvers import reverse
+from django.test.utils import override_settings
 from geonode.geoserver.helpers import cascading_delete
 from geonode.layers.models import Layer
 from geonode.urls import include
@@ -60,12 +61,13 @@ def parse_cookies(cookies):
     return res
 
 
-def get_wms(version='1.1.1'):
+def get_wms(version='1.1.1',layer_name=None):
     """ Function to return an OWSLib WMS object """
     # right now owslib does not support auth for get caps
     # requests. Either we should roll our own or fix owslib
+    url = GEOSERVER_URL + 'geonode/%s/wms' % layer_name
     return WebMapService(
-        GEOSERVER_URL + 'wms',
+        url,
         version=version,
         username=GEOSERVER_USER,
         password=GEOSERVER_PASSWD
@@ -217,10 +219,9 @@ class TestUpload(GeoNodeTest):
         """ Check that a layer shows up in GeoServer's get
         capabilities document """
         # using owslib
-        wms = get_wms()
-        name_workspace = 'geonode:{name}'.format(name=original_name)
-        self.assertTrue(name_workspace in wms.contents,
-                        '%s is not in %s' % (name_workspace, wms.contents))
+        wms = get_wms(layer_name=original_name)
+        self.assertTrue(original_name in wms.contents,
+                        '%s is not in %s' % (original_name, wms.contents))
 
     def check_layer_geoserver_rest(self, original_name):
         """ Check that a layer shows up in GeoServer rest api after
@@ -415,29 +416,33 @@ class TestUpload(GeoNodeTest):
         # @todo this only works with postgres!!!
         # but no serious errors occur, the import just silently does nothing
         csv_file = self.make_csv(['lat','lon','thing'],['-100','-40','foo'])
+        layer_name, ext = os.path.splitext(os.path.basename(csv_file))
         self.client.login()
         resp, form_data = self.client.upload_file(csv_file)
-        self.wait_for_progress(form_data.get('progress'))
-        base, ext = os.path.splitext(csv_file)
         self.check_save_step(resp, form_data)
         csv_step = form_data['redirect_to']
         self.assertEquals(csv_step, upload_step('csv'))
         form_data = dict(lat='lat', lng='lon', csrfmiddlewaretoken=self.client.get_crsf_token())
         resp = self.client.make_request(csv_step, form_data)
-        #@todo do this elsewhere
-        url = resp.geturl().replace(GEONODE_URL, "")
-        self.finish_upload(url, base, is_raster=True, skip_srs=True)
 
+        self.assertTrue(resp.geturl().endswith(layer_name),
+            'expected url to end with %s, but got %s' % (layer_name, resp.geturl()))
+        self.assertEquals(resp.code, 200)
+
+        self.check_layer_complete(resp.geturl(), layer_name)
+
+
+    @override_settings(UPLOADER_SHOW_TIME_STEP=True)
     def test_time(self):
         """Verify that uploading time based csv files works properly"""
-        if not settings.UPLOADER_SHOW_TIME_STEP:
-            print '\ntime step not enabled ... skipping time tests'
+        if not settings.DB_DATASTORE:
+            print '\nNo DB_DATASTORE configured, skipping CSV tests'
             return
 
         timedir = os.path.join(GOOD_DATA, 'time')
         self.client.login()
-        base = 'boxes_with_date'
-        shp = os.path.join(timedir, '%s.shp' % base)
+        layer_name = 'boxes_with_date'
+        shp = os.path.join(timedir, '%s.shp' % layer_name)
 
         # get to time step
         resp, data = self.client.upload_file(shp)
@@ -453,11 +458,12 @@ class TestUpload(GeoNodeTest):
                     presentation_strategy='LIST',
                     )
         resp = self.client.make_request(upload_step('time'), data)
-        data = json.loads(resp.read())
+
+        self.assertTrue(resp.geturl().endswith(layer_name),
+            'expected url to end with %s, but got %s' % (layer_name, resp.geturl()))
         self.assertEquals(resp.code, 200)
-        self.wait_for_progress(data.get('progress'))
-        redirect_to = data['redirect_to']
-        self.assertEquals(redirect_to, upload_step('final'))
-        self.check_layer_geonode_page(redirect_to)
-        self.check_layer_geoserver_caps(base)
-        self.check_layer_geoserver_rest(base)
+
+        self.check_layer_complete(resp.geturl(), layer_name)
+        wms = get_wms(layer_name=layer_name)
+        layer_info = wms.items()[0][1]
+        self.assertEquals(100, len(layer_info.timepositions))
