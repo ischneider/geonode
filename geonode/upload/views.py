@@ -14,7 +14,7 @@ State is stored in a UploaderSession object stored in the user's session.
 This needs to be made more stateful by adding a model.
 """
 from geonode.layers.forms import NewLayerUploadForm
-from geonode.utils import json_response
+from geonode.utils import json_response as do_json_response
 from geonode.upload import forms
 from geonode.upload.models import Upload, UploadFile
 from geonode.upload import upload
@@ -38,6 +38,7 @@ from django.views.generic import CreateView, DeleteView
 import json
 import os
 import logging
+import traceback
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,12 @@ def _progress_redirect(step):
         redirect_to= reverse('data_upload', args=[step]),
         progress = reverse('data_upload_progress')
     ))
+
+
+def json_response(*args, **kw):
+    if 'exception' in kw:
+        logger.warn(traceback.format_exc(kw['exception']))
+    return do_json_response(*args, **kw)
 
 
 def _error_response(req, exception=None, errors=None, force_ajax=False):
@@ -493,7 +500,7 @@ def delete(req, id):
     if req.user != upload.user:
         raise PermissionDenied()
     upload.delete()
-    return HttpResponse(reverse('data_upload_new'))
+    return HttpResponse('OK')
 
 
 class UploadFileCreateView(CreateView):

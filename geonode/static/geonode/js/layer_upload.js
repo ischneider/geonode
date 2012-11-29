@@ -366,4 +366,47 @@ function init(options) {
             }
         }
     }
+
+    var confirmDelete = true;
+    var activeDelete = null;
+    function deleteUpload(el) {
+        var a = new Ext.Element(el);
+        Ext.Ajax.request({
+            url : a.getAttribute('href'),
+            success : function() {
+                var uip = a.parent('.uip');
+                Ext.get('confirm-delete').hide().appendTo(uip.parent());
+                uip.remove();
+                if (Ext.select('div.uip').getCount() == 0) {
+                    Ext.select('section.uip').addClass('hide');
+                }
+            },
+            failure : function() {
+                alert('Uh oh. An error occurred.')
+            }
+        });
+        Ext.get('confirm-delete').hide();
+    }
+    Ext.select('#confirm-delete a').on('click',function(ev) {
+        var resp = Ext.get(this).getAttribute('href');
+        ev.preventDefault();
+        if (/n/.test(resp)) {
+            Ext.get('confirm-delete').hide();
+        } else {
+            if (/yy/.test(resp)) {
+                confirmDelete = false;
+            }
+            deleteUpload(activeDelete);
+        }
+
+    });
+    Ext.select('.uip .icon-trash').on('click',function(ev) {
+        ev.preventDefault();
+        if (confirmDelete) {
+            activeDelete = this;
+            Ext.get('confirm-delete').removeClass('hide').appendTo(Ext.get(this).parent('.uip')).enableDisplayMode().show();
+        } else {
+            deleteUpload(this);
+        }
+    });
 }

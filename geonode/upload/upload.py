@@ -28,7 +28,7 @@ from geonode.upload.utils import create_geoserver_db_featurestore
 import geoserver
 from geoserver.resource import Coverage
 from geoserver.resource import FeatureType
-from geonode.geoserver.uploader.uploader import RequestFailed
+from geonode.geoserver.uploader.uploader import BadRequest
 
 from django.conf import settings
 from django.contrib.auth.models import User
