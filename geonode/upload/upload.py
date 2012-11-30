@@ -16,6 +16,7 @@ This needs to be made more stateful by adding a model.
 from geonode.geoserver.helpers import get_sld_for
 from geonode.layers.utils import get_valid_layer_name
 from geonode.layers.utils import layer_type
+from geonode.layers.metadata import set_metadata
 from geonode.layers.models import Layer
 from geonode.layers.utils import layer_set_permissions
 from geonode.people.models import Profile 
@@ -24,6 +25,7 @@ from geonode.people.utils import get_default_user
 from geonode.upload.models import Upload
 from geonode.upload import signals
 from geonode.upload.utils import create_geoserver_db_featurestore
+from geonode.upload.utils import find_file_re
 
 import geoserver
 from geoserver.resource import Coverage
@@ -509,6 +511,22 @@ def final_step(upload_session, user):
                                            defaults={"name": user.username })
     saved_layer.poc = poc_contact
     saved_layer.metadata_author = author_contact
+
+    # look for xml
+    xml_file = find_file_re(upload_session.base_file, '.*\.xml')
+    if xml_file:
+        saved_layer.metadata_uploaded = True
+        # get model properties from XML
+        vals, keywords = set_metadata(open(xml_file[0]).read())
+
+        # set taggit keywords
+        saved_layer.keywords.add(*keywords)
+
+        # set model properties
+        for (key, value) in vals.items():
+            setattr(saved_layer, key, value)
+
+        saved_layer.save()
 
     # Set default permissions on the newly created layer
     # FIXME: Do this as part of the post_save hook

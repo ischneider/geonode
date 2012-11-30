@@ -107,6 +107,15 @@ function init(options) {
         listeners: listeners
     });
 
+    var xml_file = new Ext.ux.form.FileUploadField({
+        id: 'xml_file',
+        emptyText: gettext('Select a .xml metadata file (ISO, Dublin Core, FGDC [optional])'),
+        fieldLabel: gettext('XML'),
+        name: 'xml_file',
+        allowBlank: true,
+        listeners: listeners
+    });
+
     var abstractField = new Ext.form.TextArea({
         id: 'abstract',
         fieldLabel: gettext('Abstract'),
@@ -125,7 +134,7 @@ function init(options) {
     }
 
     if (!options.layer_name) {
-        form_fields = form_fields.concat(sld_file,abstractField,permissionsField);
+        form_fields = form_fields.concat(sld_file, xml_file, abstractField,permissionsField);
     }
 
     var fp = new Ext.FormPanel({

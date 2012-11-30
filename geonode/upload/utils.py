@@ -1,4 +1,3 @@
-import os.path
 import os
 import re
 import logging
@@ -33,14 +32,19 @@ def get_upload_type(filename):
     else:
         assert extension in possible_types
         return extension
-    
+
+
+def find_file_re(base_file, regex):
+    '''case-insensitive filter the directory containing base_file w/ regex'''
+    dirname = os.path.dirname(base_file)
+    return map(lambda f: os.path.join(dirname,f), 
+               filter(re.compile(regex, re.I).match, os.listdir(dirname)))
 
 
 def find_sld(base_file):
     '''work around assumption in get_files that sld will be named the same'''
-    for f in os.listdir(os.path.dirname(base_file)):
-        if f.lower().endswith('.sld'):
-            return f
+    f = find_file_re(base_file, '.*\.sld')
+    return f[0] if f else None
 
 
 def rename_and_prepare(base_file):
