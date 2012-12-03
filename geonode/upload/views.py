@@ -31,7 +31,7 @@ or return response objects.
 State is stored in a UploaderSession object stored in the user's session.
 This needs to be made more stateful by adding a model.
 """
-from geonode.layers.forms import NewLayerUploadForm
+from geonode.upload.forms import LayerUploadForm
 from geonode.utils import json_response as do_json_response
 from geonode.upload import forms
 from geonode.upload.models import Upload, UploadFile
@@ -171,7 +171,7 @@ def save_step_view(req, session):
         
     assert session is None
 
-    form = NewLayerUploadForm(req.POST, req.FILES)
+    form = LayerUploadForm(req.POST, req.FILES)
     tempdir = None
     if form.is_valid():
         tempdir, base_file = form.write_files()

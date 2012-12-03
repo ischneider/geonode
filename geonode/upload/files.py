@@ -67,8 +67,8 @@ class FileType(object):
         self.name = name
         self.code = code
         self.layer_type = layer_type
-        if auxillary_file_exts:
-            self.auxillary_file_exts = auxillary_file_exts
+        self.aliases = aliases or []
+        self.auxillary_file_exts = auxillary_file_exts or []
             
     def matches(self, ext):
         return ext == self.code or ext in self.aliases
@@ -86,6 +86,9 @@ class FileType(object):
         slds = _find_sld_files(base_matches)
         aux_files = filter( lambda f: os.path.splitext(f)[1][1:].lower() in self.aux_files, others)
         return aux_files, slds
+
+    def __repr__(self):
+        return "%s - %s" % (self.__class__, self.code)
 
 
 TYPE_UNKNOWN = FileType("unknown", None, None)

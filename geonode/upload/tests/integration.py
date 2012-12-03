@@ -36,6 +36,7 @@ import csv
 import glob
 import json
 import os
+import subprocess
 import tempfile
 import time
 import urllib
@@ -78,7 +79,6 @@ def get_wms(version='1.1.1',layer_name=None):
         password=GEOSERVER_PASSWD
     )
 
-print Layer.objects.all().count()
 
 class Client(object):
     """client for making http requests"""
@@ -426,11 +426,7 @@ class TestUpload(GeoNodeTest):
         self.assertEquals(resp.code, 200)
         self.assertTrue('success' in data)
         self.assertTrue(not data['success'])
-        self.assertEquals(
-            data['errors'],
-            ['Only Shapefiles, GeoTiffs, and CSV files are supported. You '
-             'uploaded a .py file']
-        )
+        self.assertTrue('You uploaded a .py file' in data['errors'][0])
 
     def test_repeated_upload(self):
         """Verify that we can upload a shapefile twice """
@@ -469,15 +465,24 @@ class TestUpload(GeoNodeTest):
             out.writerow(r)
         fp.close()
         return abspath
-    
+
+
+    def test_csv_disabled(self):
+        '''make sure a csv upload fails gracefully/normally when not activated'''
+        if settings.DB_DATASTORE:
+            print '\nDB_DATASTORE configured, skipping disabled CSV test'
+        csv_file = self.make_csv(['lat','lon','thing'],['-100','-40','foo'])
+        layer_name, ext = os.path.splitext(os.path.basename(csv_file))
+        self.client.login()
+        resp, form_data = self.client.upload_file(csv_file)
+        print resp, form_data
+
 
     def test_csv(self):
         """Verify a correct CSV upload"""
         if not settings.DB_DATASTORE:
-            print '\nNo DB_DATASTORE configured, skipping CSV tests'
+            print '\nNo DB_DATASTORE configured, skipping CSV test'
             return
-        # @todo this only works with postgres!!!
-        # but no serious errors occur, the import just silently does nothing
         csv_file = self.make_csv(['lat','lon','thing'],['-100','-40','foo'])
         layer_name, ext = os.path.splitext(os.path.basename(csv_file))
         self.client.login()
@@ -497,14 +502,11 @@ class TestUpload(GeoNodeTest):
         os.unlink(csv_file)
 
 
-    @override_settings(UPLOADER_SHOW_TIME_STEP=True)
     def test_time(self):
         """Verify that uploading time based csv files works properly"""
         if not settings.DB_DATASTORE:
             print '\nNo DB_DATASTORE configured, skipping CSV tests'
             return
-
-        self.assertEquals(settings.UPLOADER_SHOW_TIME_STEP, True)
 
         timedir = os.path.join(GOOD_DATA, 'time')
         self.client.login()

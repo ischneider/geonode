@@ -22,6 +22,7 @@ from geonode.layers.forms import JSONField
 from geonode.upload.models import UploadFile 
 import os
 import tempfile
+import files
 
 class UploadFileForm(forms.ModelForm):
     class Meta:
@@ -34,21 +35,27 @@ class LayerUploadForm(forms.Form):
     shx_file = forms.FileField(required=False)
     prj_file = forms.FileField(required=False)
     sld_file = forms.FileField(required=False)
+    xml_file = forms.FileField(required=False)
 
     abstract = forms.CharField(required=False)
     layer_title = forms.CharField(required=False)
     permissions = JSONField()
 
-    spatial_files = ("base_file", "dbf_file", "shx_file", "prj_file", "sld_file")
+    spatial_files = ("base_file", "dbf_file", "shx_file", "prj_file", "sld_file", "xml_file")
 
     def clean(self):
+        requires_datastore = () if settings.DB_DATASTORE else ('csv',)
+        types = [ t for t in files.types if t.code not in requires_datastore]
+        supported_type = lambda ext: any([t.matches(ext) for t in types])
+
         cleaned = super(LayerUploadForm, self).clean()
         base_name, base_ext = os.path.splitext(cleaned["base_file"].name)
         if base_ext.lower() == '.zip':
             # for now, no verification, but this could be unified
             pass
-        elif base_ext.lower() not in (".shp", ".tif", ".tiff", ".geotif", ".geotiff", ".csv"):
-            raise forms.ValidationError("Only Shapefiles, GeoTiffs, and CSV files are supported. You uploaded a %s file" % base_ext)
+        elif not supported_type(base_ext.lower()[1:]):
+            supported = " , ".join([t.name for t in types])
+            raise forms.ValidationError("%s files are supported. You uploaded a %s file" % (supported, base_ext))
         if base_ext.lower() == ".shp":
             dbf_file = cleaned["dbf_file"]
             shx_file = cleaned["shx_file"]

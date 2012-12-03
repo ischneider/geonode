@@ -532,6 +532,7 @@ def final_step(upload_session, user):
 
     # look for xml
     xml_file = find_file_re(upload_session.base_file, '.*\.xml')
+    print xml_file
     if xml_file:
         saved_layer.metadata_uploaded = True
         # get model properties from XML
