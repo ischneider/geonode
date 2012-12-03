@@ -1,3 +1,27 @@
+#########################################################################
+#
+# Copyright (C) 2012 OpenPlans
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+#########################################################################
+'''An incomplete replacement for the various file support functions currently
+scattered over the codebase
+
+@todo complete and use
+'''
+
 import os.path
 from geoserver.resource import FeatureType
 from geoserver.resource import Coverage
@@ -17,16 +41,11 @@ xml_unsafe = re.compile(r"(^[^a-zA-Z\._]+)|([^a-zA-Z\._0-9]+)")
 class SpatialFile(object):
 
     is_compressed = False
-    
     file_type = "unknown"
-
     layer_type = None
-
     base_file = None
-
-    auxillary_files = []
-
-    sld_files = []
+    auxillary_files = None
+    sld_files = None
 
     def __init__(self, **kwargs):
         for k in kwargs:
@@ -39,13 +58,9 @@ class SpatialFile(object):
 class FileType(object):
     
     name = None
-
     code = None
-
-    auxillary_file_exts = []
-    
-    aliases = []
-
+    auxillary_file_exts = None
+    aliases = None
     layer_type = None
 
     def __init__(self, name, code, layer_type, aliases=None, auxillary_file_exts=None):
@@ -108,9 +123,7 @@ def scan_file(file_name):
     '''get a list of SpatialFiles for the provided file'''
     
     dirname = os.path.dirname(file_name)
-    
     files = None
-    
     is_compressed = False
     
     if zipfile.is_zipfile(file_name):
@@ -133,7 +146,6 @@ def scan_file(file_name):
         files = os.listdir(dirname)
         
     _rename_files(files)
-    
     found = []
     
     for file_type in types:
