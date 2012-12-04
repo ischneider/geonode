@@ -3,17 +3,19 @@ To run these tests, make sure a test db is setup:
 
 Create the admin user as per the above account credentials
 
-Run geoserver and django. Make sure that geonode.upload is in INSTALLED_APPS:
+Run geoserver. Make sure that geonode.upload is in INSTALLED_APPS:
 
-  paver start
+  paver start_geoserver
 
-While geoserver and django are running, run tests:
+While geoserver is running, run tests:
 
   REUSE_DB=1 python manage.py test geonode.upload.integrationtests
 
+These tests will internally run a django server and modify the settings as
+needed to adjust differences in configuration.
+
 The upload tests will load a settings module to allow specification of a postgres
-database other than what you might use for other local purposes. The settings
-will be applied and then unwound after the testclass is complete. This module is:
+database other than what you might use for other local purposes. This module is:
 
   geonode.upload.tests.test_settings
 

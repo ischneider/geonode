@@ -77,11 +77,12 @@ class Upload(models.Model):
         
     def update_from_session(self, upload_session):
         self.state = upload_session.import_session.state
+        self.date = datetime.now()
         if "COMPLETE" == self.state:
             self.complete = True
             self.session = None
-        self.date = datetime.now()
-        self.session = pickle.dumps(upload_session)
+        else:
+            self.session = pickle.dumps(upload_session)
         if self.upload_dir is None:
             self.upload_dir = path.dirname(upload_session.base_file)
             self.name = upload_session.layer_title or upload_session.name

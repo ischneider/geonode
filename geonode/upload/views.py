@@ -405,7 +405,6 @@ def run_response(req, upload_session):
 
 
 def final_step_view(req, upload_session):
-    del req.session[_SESSION_KEY]
     saved_layer = upload.final_step(upload_session, req.user)
     return HttpResponseRedirect(saved_layer.get_absolute_url())
 

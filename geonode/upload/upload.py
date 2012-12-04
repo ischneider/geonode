@@ -532,7 +532,6 @@ def final_step(upload_session, user):
 
     # look for xml
     xml_file = find_file_re(upload_session.base_file, '.*\.xml')
-    print xml_file
     if xml_file:
         saved_layer.metadata_uploaded = True
         # get model properties from XML
@@ -586,5 +585,9 @@ def final_step(upload_session, user):
         shutil.rmtree(upload_session.tempdir)
 
     signals.upload_complete.send(sender=final_step, layer=saved_layer)
+
+    upload = Upload.objects.get(import_id = upload_session.import_session.id)
+    upload.layer = saved_layer
+    upload.save()
 
     return saved_layer

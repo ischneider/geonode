@@ -21,9 +21,11 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.conf.urls import patterns
 from django.core.urlresolvers import reverse
+from django.db.models import Max
 from django.test.utils import override_settings
 from geonode.geoserver.helpers import cascading_delete
 from geonode.layers.models import Layer
+from geonode.upload.models import Upload
 from geonode.urls import include
 from geonode.urls import urlpatterns
 from geoserver.catalog import Catalog
@@ -36,6 +38,7 @@ import csv
 import glob
 import json
 import os
+import signal
 import subprocess
 import tempfile
 import time
@@ -183,36 +186,15 @@ class Client(object):
         )
 
 
-class GeoNodeTest(TestCase):
+class UploaderBase(TestCase):
 
-    def setUp(self):
-        self.client = Client(
-            GEONODE_URL, GEONODE_USER, GEONODE_PASSWD
-        )
-        self.catalog = Catalog(
-            GEOSERVER_URL + 'rest', GEOSERVER_USER, GEOSERVER_PASSWD
-        )
-        super(GeoNodeTest, self).setUp()
-
-class TestUpload(GeoNodeTest):
+    settings_overrides = []
 
     @classmethod
     def setUpClass(cls):
-        super(TestUpload, cls).setUpClass()
-        test_settings = None
-        try:
-            from geonode.upload.tests import test_settings
-        except:
-            pass
-        if test_settings:
-            print 'applying test settings module', test_settings.__file__
-            new_settings = filter(lambda kv: kv[0][0] != '_', vars(test_settings).items())
-            old_settings = [(kv[0],getattr(settings, kv[0], None)) for kv in new_settings]
-            for i in new_settings:
-                print 'setting %s=%s' % i
-                setattr(settings, *i)
-            cls._old_settings = old_settings
+        super(UploaderBase, cls).setUpClass()
 
+        # don't accidentally delete anyone's layers
         if Layer.objects.all().count():
             if 'DELETE_LAYERS' not in os.environ:
                 print
@@ -222,17 +204,51 @@ class TestUpload(GeoNodeTest):
                 print
                 raise Exception('FAIL, SEE ABOVE')
 
-        settings.UPLOADER_SHOW_TIME_STEP = False
+        # make a settings module
+        settings = ['from geonode.settings import *']
+        if os.path.exists('geonode/upload/tests/test_settings.py'):
+            settings.append('from geonode.upload.tests.test_settings import *')
+        for so in cls.settings_overrides:
+            settings.append('%s=%s' % so)
+        with open('integration_settings.py', 'w') as fp:
+            fp.write('\n'.join(settings))
+
+        # runserver with settings
+        args = ['python','manage.py','runserver','--settings=integration_settings','--verbosity=0']
+        # see http://www.doughellmann.com/PyMOTW/subprocess/#process-groups-sessions
+        cls._runserver = subprocess.Popen(args, stderr=open('test.log','w') ,preexec_fn=os.setsid)
+
+        # await startup
+        cl = Client(
+            GEONODE_URL, GEONODE_USER, GEONODE_PASSWD
+        )
+        for i in range(5):
+            try:
+                cl.get_html('/')
+                break
+            except:
+                time.sleep(.5)
+        if cls._runserver.poll() is not None:
+            raise Exception("Error starting server, check test.log")
 
     @classmethod
     def tearDownClass(cls):
-        super(TestUpload, cls).tearDownClass()
-        for i in getattr(cls, '_old_settings', []):
-            setattr(settings, *i)
-        settings.UPLOADER_SHOW_TIME_STEP = True
+        super(UploaderBase, cls).tearDownClass()
+
+        # kill server process group
+        os.killpg(cls._runserver.pid, signal.SIGKILL)
+        if os.path.exists('integration_settings.py'):
+            os.unlink('integration_settings.py')
 
     def setUp(self):
-        super(TestUpload, self).setUp()
+        super(UploaderBase, self).setUp()
+        self._tempfiles = []
+        self.client = Client(
+            GEONODE_URL, GEONODE_USER, GEONODE_PASSWD
+        )
+        self.catalog = Catalog(
+            GEOSERVER_URL + 'rest', GEOSERVER_USER, GEOSERVER_PASSWD
+        )
         # @todo - this is obviously the brute force approach - ideally,
         # these cases would be more declarative and delete only the things
         # they mess with
@@ -240,6 +256,10 @@ class TestUpload(GeoNodeTest):
         # and destroy anything left dangling on geoserver
         cat = Layer.objects.gs_catalog
         map(lambda name: cascading_delete(cat, name), [l.name for l in cat.get_layers()])
+
+    def tearDown(self):
+        super(UploaderBase, self).tearDown()
+        map(os.unlink, self._tempfiles)
 
     def check_layer_geonode_page(self, path):
         """ Check that the final layer page render's correctly after
@@ -333,12 +353,20 @@ class TestUpload(GeoNodeTest):
         self.assertEquals(resp.code, 200)
         
         return resp.geturl()
+
+    def check_upload_model(self, original_name):
+        try:
+            upload = Upload.objects.get(layer__name=original_name)
+        except Upload.DoesNotExist:
+            self.fail('expected to find Upload object for %s' % original_name)
+        self.assertTrue(upload.complete)
         
     def check_layer_complete(self, layer_page, original_name):
         '''check everything to verify the layer is complete'''
         self.check_layer_geonode_page(layer_page)
         self.check_layer_geoserver_caps(original_name)
         self.check_layer_geoserver_rest(original_name)
+        self.check_upload_model(original_name)
         
     def check_invalid_projection(self, layer_name, resp, data):
         """ Makes sure that we got the correct response from an layer
@@ -379,18 +407,50 @@ class TestUpload(GeoNodeTest):
         self.wait_for_progress(data.get('progress'))
         final_check(check_name, resp, data)
 
+    def wait_for_progress(self, progress_url):
+        if progress_url:
+            resp = self.client.get(progress_url)
+            assert resp.getcode() == 200, 'Invalid progress status code'
+            raw_data = resp.read()
+            json_data = json.loads(raw_data)
+            # "COMPLETE" state means done
+            if json_data.get('state', '') == 'RUNNING':
+                time.sleep(0.1)
+                self.wait_for_progress(progress_url)
+
+    def temp_file(self, ext):
+        fd, abspath = tempfile.mkstemp(ext)
+        self._tempfiles.append(abspath)
+        return fd, abspath
+
+    def make_csv(self, *rows):
+        fd, abspath = self.temp_file('.csv')
+        fp = os.fdopen(fd,'wb')
+        out = csv.writer(fp)
+        for r in rows:
+            out.writerow(r)
+        fp.close()
+        return abspath
+
+
+class TestUpload(UploaderBase):
+    settings_overrides = [
+        ('DB_DATASTORE', False)
+    ]
+    
     def test_shp_upload(self):
         """ Tests if a vector layer can be upload to a running GeoNode GeoServer"""
         fname = os.path.join(GOOD_DATA, 'vector', 'san_andres_y_providencia_water.shp')
         self.upload_file(fname, self.complete_upload)
 
     def test_raster_upload(self):
-        """ Tests if a vector layer can be upload to a running GeoNode GeoServer"""
+        """ Tests if a raster layer can be upload to a running GeoNode GeoServer"""
         fname = os.path.join(GOOD_DATA, 'raster', 'relief_san_andres.tif')
         self.upload_file(fname, self.complete_raster_upload)
 
     def test_zipped_upload(self):
-        fd, abspath = tempfile.mkstemp('.zip')
+        """Test uploading a zipped shapefile"""
+        fd, abspath = self.temp_file('.zip')
         fp = os.fdopen(fd,'wb')
         zf = ZipFile(fp, 'w')
         fpath = os.path.join(GOOD_DATA, 'vector', 'san_andres_y_providencia_poi.*')
@@ -399,9 +459,6 @@ class TestUpload(GeoNodeTest):
         zf.close()
         self.upload_file(abspath, self.complete_upload,
                          check_name='san_andres_y_providencia_poi')
-
-        os.unlink(abspath)
-
 
     def test_invalid_layer_upload(self):
         """ Tests the layers that are invalid and should not be uploaded"""
@@ -431,7 +488,7 @@ class TestUpload(GeoNodeTest):
     def test_repeated_upload(self):
         """Verify that we can upload a shapefile twice """
         Layer.objects.filter(title='single_point').delete()
-        
+
         shp = os.path.join(GOOD_DATA, 'vector', 'single_point.shp')
         base = 'single_point'
         self.client.login()
@@ -444,45 +501,26 @@ class TestUpload(GeoNodeTest):
         self.wait_for_progress(data.get('progress'))
         self.complete_upload(base + "0", resp, data)
 
-
-    def wait_for_progress(self, progress_url):
-        if progress_url:
-            resp = self.client.get(progress_url)
-            assert resp.getcode() == 200, 'Invalid progress status code'
-            raw_data = resp.read()
-            json_data = json.loads(raw_data)
-            # "COMPLETE" state means done
-            if json_data.get('state', '') == 'RUNNING':
-                time.sleep(0.1)
-                self.wait_for_progress(progress_url)
-
-
-    def make_csv(self, *rows):
-        fd, abspath = tempfile.mkstemp('.csv')
-        fp = os.fdopen(fd,'wb')
-        out = csv.writer(fp)
-        for r in rows:
-            out.writerow(r)
-        fp.close()
-        return abspath
-
-
-    def test_csv_disabled(self):
+    def test_csv(self):
         '''make sure a csv upload fails gracefully/normally when not activated'''
-        if settings.DB_DATASTORE:
-            print '\nDB_DATASTORE configured, skipping disabled CSV test'
         csv_file = self.make_csv(['lat','lon','thing'],['-100','-40','foo'])
         layer_name, ext = os.path.splitext(os.path.basename(csv_file))
         self.client.login()
-        resp, form_data = self.client.upload_file(csv_file)
-        print resp, form_data
+        resp, data = self.client.upload_file(csv_file)
+        self.assertTrue('success' in data)
+        self.assertTrue(not data['success'])
+        self.assertTrue('You uploaded a .csv file' in data['errors'][0])
 
+
+class TestUploadDBDataStore(TestUpload):
+
+    settings_overrides = [
+        ('DB_DATASTORE', True)
+    ]
 
     def test_csv(self):
-        """Verify a correct CSV upload"""
-        if not settings.DB_DATASTORE:
-            print '\nNo DB_DATASTORE configured, skipping CSV test'
-            return
+        """Override the baseclass test and verify a correct CSV upload"""
+
         csv_file = self.make_csv(['lat','lon','thing'],['-100','-40','foo'])
         layer_name, ext = os.path.splitext(os.path.basename(csv_file))
         self.client.login()
@@ -499,14 +537,8 @@ class TestUpload(GeoNodeTest):
 
         self.check_layer_complete(resp.geturl(), layer_name)
 
-        os.unlink(csv_file)
-
-
     def test_time(self):
         """Verify that uploading time based csv files works properly"""
-        if not settings.DB_DATASTORE:
-            print '\nNo DB_DATASTORE configured, skipping CSV tests'
-            return
 
         timedir = os.path.join(GOOD_DATA, 'time')
         self.client.login()
@@ -533,6 +565,19 @@ class TestUpload(GeoNodeTest):
         self.assertEquals(resp.code, 200)
 
         self.check_layer_complete(resp.geturl(), layer_name)
+        # verify our 100 timestamps appear in the WMS caps doc
         wms = get_wms(layer_name=layer_name)
         layer_info = wms.items()[0][1]
         self.assertEquals(100, len(layer_info.timepositions))
+
+
+# disable DB_DATASTORE tests if not setup
+db_datastore = settings.DB_DATASTORE
+try:
+    from geonode.upload.tests import test_settings
+    db_datastore = getattr(test_settings, 'DB_DATASTORE', db_datastore)
+except ImportError:
+    pass
+if not db_datastore:
+    print 'skipping DB_DATASTORE tests'
+    del TestUploadDBDataStore
