@@ -37,6 +37,9 @@ from owslib.wms import WebMapService
 from owslib.csw import CatalogueServiceWeb
 from django.http import HttpResponse
 
+# from geonode import GeoNodeException
+#from geonode.layers.models import Layer
+#from geonode.maps.models import Map
 from geonode.security.models import AUTHENTICATED_USERS, ANONYMOUS_USERS
 from geonode.security.models import INVALID_PERMISSION_MESSAGE
 
@@ -605,4 +608,3 @@ def json_response(body=None, errors=None, redirect_to=None, exception=None,
    if not isinstance(body, basestring):
        body = json.dumps(body)
    return HttpResponse(body, content_type=content_type)
-

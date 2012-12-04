@@ -190,11 +190,11 @@ LOGGING = {
     },
     'handlers': {
         'null': {
-            'level':'DEBUG',
+            'level':'ERROR',
             'class':'django.utils.log.NullHandler',
         },
         'console':{
-            'level':'DEBUG',
+            'level':'ERROR',
             'class':'logging.StreamHandler',
             'formatter': 'simple'
         },
@@ -203,16 +203,21 @@ LOGGING = {
             'class': 'django.utils.log.AdminEmailHandler',
         }
     },
-    'loggers': {
-        'django': {
-            'handlers':['null'],
-            'propagate': True,
-            'level':'INFO',
+    "loggers": {        
+        "django": {
+            "handlers": ["console"],
+            "level": "ERROR",
+        },
+        "django.request": {
+            "handlers": ["mail_admins"],
+            "level": "ERROR",
+            "propagate": True,
         },
         "geonode": {
             "handlers": ["console"],
             "level": "ERROR",
         },
+
         "gsconfig.catalog": {
             "handlers": ["console"],
             "level": "ERROR",
@@ -499,6 +504,8 @@ DB_DATASTORE_HOST = ''
 DB_DATASTORE_PORT = ''
 DB_DATASTORE_TYPE = ''
 DB_DATASTORE_NAME = ''
+
+#The name of the store in Geoserver
 
 # Load more settings from a file called local_settings.py if it exists
 try:
