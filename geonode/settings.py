@@ -114,9 +114,6 @@ ROOT_URLCONF = 'geonode.urls'
 # Site id in the Django sites framework
 SITE_ID = 1
 
-# Show the Time Step in the Uploader (mapstory specific for now)
-UPLOADER_SHOW_TIME_STEP = False
-
 # Login and logout urls override
 LOGIN_URL = '/account/login/'
 LOGOUT_URL = '/account/logout/'

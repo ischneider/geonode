@@ -21,11 +21,10 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.conf.urls import patterns
 from django.core.urlresolvers import reverse
-from django.db import connection
-from django.test.utils import override_settings
 from geonode.geoserver.helpers import cascading_delete
 from geonode.layers.models import Layer
 from geonode.upload.models import Upload
+from geonode.upload.views import _ALLOW_TIME_STEP
 from geonode.urls import include
 from geonode.urls import urlpatterns
 from geoserver.catalog import Catalog
@@ -332,7 +331,7 @@ class UploaderBase(TestCase):
         
     def finish_upload(self, current_step, layer_name, is_raster=False, skip_srs=False):
 
-        if (not is_raster and settings.UPLOADER_SHOW_TIME_STEP):
+        if (not is_raster and _ALLOW_TIME_STEP):
             resp, data = self.check_and_pass_through_timestep(data)
             self.assertEquals(resp.code, 200)
             self.assertTrue(data['success'], 'expected success but got %s' % data)
@@ -350,7 +349,7 @@ class UploaderBase(TestCase):
            
         # and the final page should redirect to tha layer page
         self.assertTrue(resp.geturl().endswith(layer_name), 
-            'expected url to end with %s, but got %s' % (layer_name, resp.geturl()))
+            'expected url to end with %s, but got "%s". possible orphan table in DB' % (layer_name, resp.geturl()))
         self.assertEquals(resp.code, 200)
         
         return resp.geturl()
@@ -372,7 +371,7 @@ class UploaderBase(TestCase):
     def check_invalid_projection(self, layer_name, resp, data):
         """ Makes sure that we got the correct response from an layer
         that can't be uploaded"""
-        if settings.UPLOADER_SHOW_TIME_STEP:
+        if _ALLOW_TIME_STEP:
             resp, data = self.check_and_pass_through_timestep(data)
         self.assertTrue(resp.code, 200)
         self.assertTrue(data['success'])
@@ -573,12 +572,6 @@ class TestUploadDBDataStore(TestUpload):
 
 
 # disable DB_DATASTORE tests if not setup
-db_datastore = settings.DB_DATASTORE
-try:
-    from geonode.upload.tests import test_settings
-    db_datastore = getattr(test_settings, 'DB_DATASTORE', db_datastore)
-except ImportError:
-    pass
-if not db_datastore:
+if not settings.DB_DATASTORE:
     print 'skipping DB_DATASTORE tests'
     del TestUploadDBDataStore

@@ -62,7 +62,7 @@ import uuid
 logger = logging.getLogger(__name__)
 
 _SESSION_KEY = 'geonode_upload_session'
-_ALLOW_TIME_STEP = hasattr(settings, "UPLOADER_SHOW_TIME_STEP") and settings.UPLOADER_SHOW_TIME_STEP or False
+_ALLOW_TIME_STEP = getattr(settings, "UPLOADER_SHOW_TIME_STEP", False)
 _ASYNC_UPLOAD = settings.DB_DATASTORE == True
 
 # at the moment, the various time support transformations require the database
