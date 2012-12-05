@@ -24,8 +24,15 @@ from zipfile import ZipFile
 
 from django.conf import settings
 
+from geonode.geoserver.uploader.uploader import Uploader
 from geonode.layers.models import Layer
+from geonode.utils import _user, _password
 from geoserver.catalog import FailedRequestError
+
+
+def gs_uploader():
+    url = "%srest" % settings.GEOSERVER_BASE_URL
+    return Uploader(url, _user, _password)
 
 
 def get_upload_type(filename):

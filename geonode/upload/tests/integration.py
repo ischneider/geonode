@@ -21,7 +21,7 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.conf.urls import patterns
 from django.core.urlresolvers import reverse
-from django.db.models import Max
+from django.db import connection
 from django.test.utils import override_settings
 from geonode.geoserver.helpers import cascading_delete
 from geonode.layers.models import Layer
@@ -204,14 +204,14 @@ class UploaderBase(TestCase):
                 print
                 raise Exception('FAIL, SEE ABOVE')
 
-        # make a settings module
-        settings = ['from geonode.settings import *']
+        # make a test_settings module that will apply our overrides
+        test_settings = ['from geonode.settings import *']
         if os.path.exists('geonode/upload/tests/test_settings.py'):
-            settings.append('from geonode.upload.tests.test_settings import *')
+            test_settings.append('from geonode.upload.tests.test_settings import *')
         for so in cls.settings_overrides:
-            settings.append('%s=%s' % so)
+            test_settings.append('%s=%s' % so)
         with open('integration_settings.py', 'w') as fp:
-            fp.write('\n'.join(settings))
+            fp.write('\n'.join(test_settings))
 
         # runserver with settings
         args = ['python','manage.py','runserver','--settings=integration_settings','--verbosity=0']
@@ -239,6 +239,7 @@ class UploaderBase(TestCase):
         os.killpg(cls._runserver.pid, signal.SIGKILL)
         if os.path.exists('integration_settings.py'):
             os.unlink('integration_settings.py')
+
 
     def setUp(self):
         super(UploaderBase, self).setUp()

@@ -44,6 +44,7 @@ from geonode.upload.models import Upload
 from geonode.upload import signals
 from geonode.upload.utils import create_geoserver_db_featurestore
 from geonode.upload.utils import find_file_re
+from geonode.upload.utils import gs_uploader
 
 import geoserver
 from geoserver.resource import Coverage
@@ -236,7 +237,7 @@ def save_step(user, layer, base_file, overwrite=True):
 
         # @todo settings for use_url or auto detection if geoserver is
         # on same host
-        import_session = Layer.objects.gs_uploader.upload(
+        import_session = gs_uploader().upload(
             base_file, use_url=False, import_id=next_id)
             
         # save record of this whether valid or not - will help w/ debugging
@@ -272,7 +273,7 @@ def run_import(upload_session, async):
     Returns the target datastore.
     """
     import_session = upload_session.import_session
-    import_session = Layer.objects.gs_uploader.get_session(import_session.id)
+    import_session = gs_uploader().get_session(import_session.id)
     if import_session.state == 'INCOMPLETE':
         item = upload_session.import_session.tasks[0].items[0]
         if item.state == 'NO_CRS':

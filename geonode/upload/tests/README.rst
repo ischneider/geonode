@@ -17,10 +17,15 @@ needed to adjust differences in configuration.
 The upload tests will load a settings module to allow specification of a postgres
 database other than what you might use for other local purposes. This module is:
 
-  geonode.upload.tests.test_settings
+  geonode.upload.tests.local_settings
 
-If the `test_settings` or standard django settings do not enable a DB_DATASTORE,
+If the `local_settings` or standard django settings do not enable a DB_DATASTORE,
 the importer tests that import into the database will not run.
+
+The `test_settings` module must also be supplied when launching the tests to run
+the full suite including the DB_DATASTORE tests:
+
+  DJANGO_SETTINGS_MODULE=geonode.upload.tests.test_settings python manage.py test geonode.upload.tests.integration
 
 If there are existing layers in the test database, the tests will not run unless
 the environment variable `DELETE_LAYERS` is present. For example:
