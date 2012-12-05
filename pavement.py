@@ -339,9 +339,6 @@ def reset():
 
 def _reset():
     sh("rm -rf geonode/development.db")
-    from geonode.settings import DB_DATASTORE
-    if DB_DATASTORE == True:
-        sh('bash scripts/misc/create_dbs.sh')
     # Reset data dir
     sh('git clean -xdfq geoserver-geonode-ext/src/main/webapp/data')
     sh('git checkout -q geoserver-geonode-ext/src/main/webapp/data')
