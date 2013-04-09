@@ -32,6 +32,7 @@ def index(request, template='index.html'):
     from django.db import connection
     if False:
         q = filter_security(Layer.objects.all(), request.user, Layer, 'view_layer')
+        q.order_by('date')
         page = int(request.REQUEST.get('page', 0))
         ctx = {'object_list' : q, 'test_paginate' : True}
         if page > 0:
