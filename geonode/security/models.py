@@ -27,6 +27,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import login
 
 from geonode.security.enumerations import GENERIC_GROUP_NAMES
+from geonode.security.enumerations import ANONYMOUS_USERS
+from geonode.security.enumerations import AUTHENTICATED_USERS
 
 class ObjectRoleManager(models.Manager):
     def get_by_natural_key(self, codename, app_label, model):
@@ -252,3 +254,29 @@ def autologin(sender, **kwargs):
 
 #FIXME(Ariel): Replace this signal with the one from django-user-accounts
 #user_activated.connect(autologin)
+
+def filter_security(q, user, model, permission):
+    '''apply filters to the query that remove those model objects that are
+    not viewable by the given user based on row-level permissions'''
+    # superusers see everything
+    if user and user.is_superuser: return q
+
+    # resolve the model permission
+    ct = ContentType.objects.get_for_model(model)
+    p = Permission.objects.get(content_type=ct, codename=permission)
+
+    # apply generic role filters
+    generic_roles = [ANONYMOUS_USERS]
+    if user and not user.is_anonymous():
+        generic_roles.append(AUTHENTICATED_USERS)
+    grm = GenericObjectRoleMapping.objects.filter(object_ct=ct, role__permissions__in=[p], subject__in=generic_roles).values('object_id')
+    q = q.filter(id__in=grm)
+
+    # apply specific user filters
+    if user and not user.is_anonymous():
+        urm = UserObjectRoleMapping.objects.filter(object_ct=ct, role__permissions__in=[p], user=user).values('object_id')
+        q = q | q.filter(id__in=urm)
+        # if the user is the owner, make sure these are included
+        q = q | getattr(model, 'objects').filter(owner=user)
+
+    return q

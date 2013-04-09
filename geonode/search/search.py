@@ -36,6 +36,8 @@ from geonode.search.models import filter_by_period
 from geonode.search.models import filter_by_extent
 from geonode.search.models import using_geodjango
 
+from geonode.security.models import filter_security
+
 import operator
 
 
@@ -49,32 +51,6 @@ def _filter_results(l):
     '''If the layer name doesn't match any of the patterns, it shows in the results'''
     return not any(p.search(l['name']) for p in extension.exclude_regex)
 
-
-def _filter_security(q, user, model, permission):
-    '''apply filters to the query that remove those model objects that are
-    not viewable by the given user based on row-level permissions'''
-    # superusers see everything
-    if user and user.is_superuser: return q
-
-    # resolve the model permission
-    ct = ContentType.objects.get_for_model(model)
-    p = Permission.objects.get(content_type=ct, codename=permission)
-
-    # apply generic role filters
-    generic_roles = [ANONYMOUS_USERS]
-    if user and not user.is_anonymous():
-        generic_roles.append(AUTHENTICATED_USERS)
-    grm = GenericObjectRoleMapping.objects.filter(object_ct=ct, role__permissions__in=[p], subject__in=generic_roles).values('object_id')
-    q = q.filter(id__in=grm)
-
-    # apply specific user filters
-    if user and not user.is_anonymous():
-        urm = UserObjectRoleMapping.objects.filter(object_ct=ct, role__permissions__in=[p], user=user).values('object_id')
-        q = q | q.filter(id__in=urm)
-        # if the user is the owner, make sure these are included
-        q = q | getattr(model, 'objects').filter(owner=user)
-
-    return q
 
 def _filter_category(q, categories):
     _categories = []
@@ -186,7 +162,7 @@ def _get_owner_results(query):
 def _get_map_results(query):
     q = extension.map_query(query)
 
-    q = _filter_security(q, query.user, Map, 'view_map')
+    q = filter_security(q, query.user, Map, 'view_map')
 
     if query.owner:
         q = q.filter(owner__username=query.owner)
@@ -224,7 +200,7 @@ def _get_layer_results(query):
 
     q = extension.layer_query(query)
 
-    q = _filter_security(q, query.user, Layer, 'view_layer')
+    q = filter_security(q, query.user, Layer, 'view_layer')
 
     if extension.exclude_patterns:
         name_filter = reduce(operator.or_,[ Q(name__regex=f) for f in extension.exclude_patterns])
@@ -273,7 +249,7 @@ def _get_document_results(query):
 
     q = extension.document_query(query)
 
-    q = _filter_security(q, query.user, Document, 'view_document')
+    q = filter_security(q, query.user, Document, 'view_document')
 
     if extension.exclude_patterns:
         name_filter = reduce(operator.or_,[ Q(name__regex=f) for f in extension.exclude_patterns])
