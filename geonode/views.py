@@ -21,14 +21,32 @@ from django import forms
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.http import HttpResponse
+from django.shortcuts import render_to_response
+from django.template import RequestContext
 from django.utils import simplejson as json
 
+from geonode.layers.models import Layer
+from geonode.security.models import filter_security
+
 def index(request, template='index.html'):
-    from geonode.search.views import search_page
-    post = request.POST.copy()
-    post.update({'type': 'layer'})
-    request.POST = post
-    return search_page(request, template=template)
+    from django.db import connection
+    if False:
+        q = filter_security(Layer.objects.all(), request.user, Layer, 'view_layer')
+        page = int(request.REQUEST.get('page', 0))
+        ctx = {'object_list' : q, 'test_paginate' : True}
+        if page > 0:
+            r = render_to_response('geonode/paginate_content.html', RequestContext(request, ctx))
+        else:
+            ctx['total'] = q.count()
+            r = render_to_response(template, RequestContext(request, ctx))
+    else:
+        from geonode.search.views import search_page
+        post = request.POST.copy()
+        post.update({'type': 'layer'})
+        request.POST = post
+        r = search_page(request, template=template)
+    print 'queries', len(connection.queries)
+    return r
 
 class AjaxLoginForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput)

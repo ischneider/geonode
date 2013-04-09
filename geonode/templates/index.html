@@ -41,7 +41,11 @@
       <section class="widget list paginate-contents">
         <h2>{% trans "Latest Layers" %}</h2>
         <div class="paginate paginate-auto" id="search-content">
-          {% include 'search/search_content.html' %}
+          {% if test_paginate %}
+            {% include 'geonode/paginate_content.html' %}
+          {% else %}
+            {% include 'search/search_content.html' %}
+          {% endif %}
         </div>
       </section>
     </div>
