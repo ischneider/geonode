@@ -21,7 +21,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db import backend
-from django.db.models import Q
+from django.db.models import Q, Count
 
 from geonode.security.models import UserObjectRoleMapping, GenericObjectRoleMapping
 from geonode.security.enumerations import ANONYMOUS_USERS, AUTHENTICATED_USERS
@@ -179,6 +179,9 @@ def _get_owner_results(query):
         if added:
             rules = rules + _rank_rules(*added)
         q = _safely_add_relevance(q, query, rules)
+
+    for c in ('layer','layer','map','document'):
+        q = q.annotate(**{ '%s_count' % c : Count('resourcebase__%s' % c)})
 
     return q.distinct()
 
