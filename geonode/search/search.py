@@ -180,7 +180,7 @@ def _get_owner_results(query):
             rules = rules + _rank_rules(*added)
         q = _safely_add_relevance(q, query, rules)
 
-    for c in ('layer','layer','map','document'):
+    for c in ('layer','map','document'):
         q = q.annotate(**{ '%s_count' % c : Count('user__resourcebase__%s' % c)})
 
     return q.distinct()

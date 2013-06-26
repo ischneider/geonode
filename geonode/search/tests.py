@@ -133,6 +133,7 @@ class searchTest(TestCase):
             expected.sort(reverse = reversed)
             self.assertEquals(sorted_fields, expected)
 
+        return jsonvalue
 
     def test_limit(self):
         self.search_assert(self.request(limit=1), n_results=1)
@@ -146,6 +147,13 @@ class searchTest(TestCase):
 
     def test_username(self):
         self.search_assert(self.request('jblaze'), contains_username='jblaze')
+
+    def test_user_resource_counts(self):
+        res = self.search_assert(self.request(type='user'), n_results=7, n_total=7)
+        for r in res['results']:
+            self.assertEquals(Map.objects.filter(owner__username=r['id']).count(),r['map_cnt'])
+            self.assertEquals(Layer.objects.filter(owner__username=r['id']).count(),r['layer_cnt'])
+            self.assertEquals(Document.objects.filter(owner__username=r['id']).count(),r['doc_cnt'])
 
     def test_profile(self):
         self.search_assert(self.request("some other information"),
