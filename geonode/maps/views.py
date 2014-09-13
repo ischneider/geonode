@@ -36,6 +36,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 
 from geonode.layers.models import Layer
 from geonode.maps.models import Map, MapLayer, MapSnapshot
+from geonode.maps.signals import map_copied_signal
 from geonode.layers.views import _resolve_layer
 from geonode.utils import forward_mercator, llbbox_to_mercator
 from geonode.utils import DEFAULT_TITLE
@@ -394,8 +395,15 @@ def new_map_json(request):
         except Exception:
             body = ''
 
+        config = json.loads(body)
+
         try:
-            map_obj.update_from_viewer(body)
+            map_obj.update_from_viewer(config)
+
+            existing_id = config.get('copiedFrom', None)
+            # make sure ids differ or it's not a successful copy
+            if existing_id and map_obj.id != int(existing_id):
+                map_copied_signal.send_robust(map_obj, source_id=existing_id)
             MapSnapshot.objects.create(
                 config=clean_config(body),
                 map=map_obj,
@@ -432,6 +440,9 @@ def new_map_config(request):
         if request.user.is_authenticated():
             map_obj.owner = request.user
         config = map_obj.viewer_json(request.user)
+        # leave this hint about where we came from so when/if this config is
+        # saved, we can trigger the map_copied signal
+        config['copiedFrom'] = config['id']
         del config['id']
     else:
         if request.method == 'GET':

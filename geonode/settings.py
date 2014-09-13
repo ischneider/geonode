@@ -236,6 +236,7 @@ GEONODE_APPS = (
 
 
     # GeoNode internal apps
+    'geonode.annotations',
     'geonode.people',
     'geonode.base',
     'geonode.layers',
