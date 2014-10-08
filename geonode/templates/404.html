@@ -2,7 +2,13 @@
 {% load i18n %}
 
 {% block body %}
-  <div id="description"><h3>{% trans "Page Not Found" %}</h3></div>
+  <div id="description">
+  {% if model_meta %}
+  <h3>{% trans model_meta.verbose_name|capfirst %} {% trans "Not Found" %}</h3>
+  {% else %}
+  <h3>{% trans "Page Not Found" %}</h3>
+  {% endif %}
+  </div>
   {% blocktrans %}
       The page you requested does not exist.  Perhaps you are using an outdated bookmark?
   {% endblocktrans %}

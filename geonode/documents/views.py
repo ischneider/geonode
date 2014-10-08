@@ -13,6 +13,7 @@ from django.views.generic.edit import UpdateView, CreateView
 from django.db.models import F
 
 from geonode.utils import resolve_object
+from geonode.utils import handle_model_404
 from geonode.security.views import _perms_info_json
 from geonode.people.forms import ProfileForm
 from geonode.base.forms import CategoryForm
@@ -40,6 +41,7 @@ def _resolve_document(request, docid, permission='base.change_resourcebase',
                           permission=permission, permission_msg=msg, **kwargs)
 
 
+@handle_model_404
 def document_detail(request, docid):
     """
     The view that show details of each document
@@ -51,13 +53,6 @@ def document_detail(request, docid):
             docid,
             'base.view_resourcebase',
             _PERMISSION_MSG_VIEW)
-
-    except Http404:
-        return HttpResponse(
-            loader.render_to_string(
-                '404.html', RequestContext(
-                    request, {
-                        })), status=404)
 
     except PermissionDenied:
         return HttpResponse(

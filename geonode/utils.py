@@ -26,7 +26,8 @@ import string
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext_lazy as _
-from django.shortcuts import get_object_or_404
+from django.http import Http404
+from django.http import HttpResponseBadRequest
 from django.utils import simplejson as json
 from django.http import HttpResponse
 from django.core.cache import cache
@@ -440,6 +441,30 @@ def _get_viewer_projection_info(srid):
     return _viewer_projection_lookup.get(srid, {})
 
 
+def handle_model_404(fun):
+    from django.shortcuts import render
+    def checkResponse(*args, **kw):
+        try:
+            ret = fun(*args, **kw)
+        except Http404, ex:
+            ctx = {}
+            if ex.args and hasattr(ex.args[0], '_meta'):
+                ctx['model_meta'] = ex.args[0]._meta
+            return render(args[0], '404.html', ctx, status=404)
+        return ret
+    return checkResponse
+
+
+class NotFoundMiddleware:
+
+    def  process_exception(self, req, ex):
+        from django.shortcuts import render
+        if ex.args and hasattr(ex.args[0], '_meta'):
+            ctx = dict(model_meta = ex.args[0]._meta)
+            return render(req, '404.html', ctx, status=404)
+
+
+
 def resolve_object(request, model, query, permission='base.view_resourcebase',
                    permission_required=True, permission_msg=None):
     """Resolve an object using the provided query and check the optional
@@ -450,7 +475,10 @@ def resolve_object(request, model, query, permission='base.view_resourcebase',
     permission_required - if False, allow get methods to proceed
     permission_msg - optional message to use in 403
     """
-    obj = get_object_or_404(model, **query)
+    try:
+        obj = model.objects.get(**query)
+    except model.DoesNotExist, ex:
+        raise Http404(model)
     allowed = True
     if permission:
         if permission_required or request.method != 'GET':
