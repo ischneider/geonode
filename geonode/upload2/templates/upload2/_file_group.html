@@ -1,0 +1,9 @@
+<div>
+    <h3>{{ file_group.name }}</h3>
+    <div>{{ file_group.app }}</div>
+    <a href="{% url 'upload_group_configure' id=file_group.id %}" class="btn btn-info">Configure</a>
+    <form method="POST" action="{% url 'upload_group_ingest' id=file_group.id %}">
+        {% csrf_token %}
+        <button class="btn btn-primary">Ingest</button>
+    </form>
+</div>

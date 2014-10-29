@@ -1,0 +1,25 @@
+{% extends "upload2/upload_base.html" %}
+
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %} {% trans "Upload Data"  %} - {{ block.super }}  {% endblock %}
+
+{% block body_class %}layers upload{% endblock %}
+
+
+{% block head %}
+{{ block.super }}
+{% endblock %}
+
+{% block body %}
+
+  <div class="col-md-8">
+      <h2>Configure Upload</h2>
+      {% for file_group in object.filegroup_set.all %}
+         {% include 'upload2/_file_group.html' %}
+      {% endfor %}
+  </div>
+{% endblock %}
+
+

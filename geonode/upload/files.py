@@ -68,7 +68,7 @@ class SpatialFile(object):
         self.xml_files = xml_files
 
     def all_files(self):
-        return [self.base_file] + self.auxillary_files
+        return [self.base_file] + self.auxillary_files + self.sld_files + self.xml_files
 
     def __repr__(self):
         return "<SpatialFile base_file=%s file_type=%s aux=%s sld=%s xml=%s>" % (
@@ -175,6 +175,17 @@ def _find_file_type(file_names, extension):
     return filter(lambda f: f.lower().endswith(extension), file_names)
 
 
+def scan_files(files):
+    found = []
+    for file_type in types:
+        for f in files:
+            name, ext = os.path.splitext(f)
+            if file_type.matches(ext[1:]):
+                spatial_file = file_type.build_spatial_file(f, files)
+                found.append(spatial_file)
+    return found
+
+
 def scan_file(file_name):
     '''get a list of SpatialFiles for the provided file'''
 
@@ -219,13 +230,7 @@ def scan_file(file_name):
     files = _rename_files(files)
     logger.debug('Cleaned file names: {0}'.format(files))
 
-    found = []
-
-    for file_type in types:
-        for f in files:
-            name, ext = os.path.splitext(f)
-            if file_type.matches(ext[1:]):
-                found.append(file_type.build_spatial_file(f, files))
+    found = scan_file(files)
 
     # detect slds and assign iff a single upload is found
     sld_files = _find_file_type(files, extension='.sld')

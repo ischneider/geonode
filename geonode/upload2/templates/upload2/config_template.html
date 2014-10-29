@@ -1,0 +1,27 @@
+{% extends "upload2/upload_base.html" %}
+{% load bootstrap_tags %}
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %} {% trans "Upload Data"  %} - {{ block.super }}  {% endblock %}
+
+{% block body_class %}layers upload{% endblock %}
+
+
+{% block head %}
+{{ block.super }}
+{% endblock %}
+
+{% block body %}
+
+<div class="col-md-8">
+    <h2>Configure Upload</h2>
+    <form method="POST" action="{% url 'upload_group_configure' id=file_group.id %}?next={{ next }}">
+        {% csrf_token %}
+        {{ form|as_bootstrap }}
+        <button type="submit" id="upload-button" class="btn btn-primary">Configure</button>
+    </form>
+</div>
+{% endblock %}
+
+

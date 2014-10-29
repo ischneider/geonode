@@ -259,6 +259,7 @@ GEONODE_APPS = (
     'geonode.geoserver',
     'geonode.upload',
     'geonode.tasks'
+    'geonode.upload2',
 )
 
 INSTALLED_APPS = (

@@ -1,0 +1,34 @@
+{% extends "upload2/upload_base.html" %}
+
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %} {% trans "Upload Data"  %} - {{ block.super }}  {% endblock %}
+
+{% block body_class %}layers upload{% endblock %}
+
+
+{% block head %}
+{{ block.super }}
+{% endblock %}
+
+{% block body %}
+
+  <div class="col-md-8">
+
+    <section id="drop-zone">
+      <h3><i class="fa fa-cloud-upload"></i><br />{% trans "Drop files here" %}</h3>
+    </section>
+
+    <p>{% trans " or select them one by one:" %}</p>
+
+    <form id="file-uploader" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input name="files" class="btn" id="file-input" type="file" multiple>
+      <button class="btn btn-primary">Upload</button>
+    </form>
+
+  </div>
+{% endblock %}
+
+

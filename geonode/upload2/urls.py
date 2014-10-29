@@ -1,6 +1,6 @@
 #########################################################################
 #
-# Copyright (C) 2012 OpenPlans
+# Copyright (C) 2014 OpenPlans
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,28 +16,15 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
-from __future__ import absolute_import
+from django.conf.urls import patterns, url
+from geonode.upload2.views import UploadDetail
+from geonode.upload2.views import FileGroupList
 
-import os
-# This will make sure the app is always imported when
-# Django starts so that shared_task will use this app.
-from .celery import app as celery_app
-
-__version__ = (2, 4, 0, 'alpha', 0)
-
-
-class GeoNodeException(Exception):
-    """Base class for exceptions in this module."""
-    pass
-
-
-def get_version():
-    import geonode.version
-    return geonode.version.get_version(__version__)
-
-
-def main(global_settings, **settings):
-    from django.core.wsgi import get_wsgi_application
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings.get('django_settings'))
-    app = get_wsgi_application()
-    return app
+urlpatterns = patterns('geonode.upload2.views',
+                       url(r'^new/$', 'upload', name='upload_new'),
+                       url(r'^(?P<slug>([a-f\d]{8}(-[a-f\d]{4}){3}-[a-f\d]{12}?))$',
+                           UploadDetail.as_view(), name='upload_detail'),
+                       url(r'^group/(?P<id>\d+)$', 'upload_group_configure', name='upload_group_configure'),
+                       url(r'^group/(?P<id>\d+)/ingest$', 'upload_group_ingest', name='upload_group_ingest'),
+                       url(r'^pending', FileGroupList.as_view(), name='upload_pending'),
+                       )

@@ -113,6 +113,8 @@ if 'geonode.geoserver' in settings.INSTALLED_APPS:
                             (r'^gs/', include('geonode.geoserver.urls')),
                             )
 
+urlpatterns += patterns('', (r'^upload2/', include('geonode.upload2.urls')))
+
 # Set up proxy
 urlpatterns += geonode.proxy.urls.urlpatterns
 
