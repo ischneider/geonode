@@ -1,4 +1,4 @@
-{% load i18n avatar_tags announcements_tags %}
+{% load i18n avatar_tags %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -76,9 +76,6 @@
                   <li><a href="{{ user.get_profile.get_absolute_url }}"><i class="fa fa-user"></i> {% trans "Profile" %}</a></li>
                   <li><a href="{% url "recent-activity" %}"><i class="fa fa-fire"></i> {% trans "Recent Activity" %}</a></li>
                   <li><a href="{% url "messages_inbox" %}"><i class="fa fa-inbox"></i> {% trans "Inbox" %}</a></li>
-                  {% if perms.announcements.can_manage %}
-                  <li><a href="{% url "announcements_list" %}"><i class="fa fa-bullhorn"></i> {% trans "Announcements" %}</a></li>
-                  {% endif %}
                   {% if user.is_superuser %}
                   <li><a href="{% url "services" %}"><i class="fa fa-globe"></i> {% trans "Remote Services" %}</a></li>
                   <li><a href="{% url "account_invite_user" %}"><i class="fa fa-edit"></i> {% trans "Invite User" %}</a></li>
@@ -136,20 +133,7 @@
 
   <div id="wrap">
     {% block middle %}
-    {% announcements as site_wide_announcements %}
     <div class="container">
-      {% if site_wide_announcements %}
-      <div id="site_wide_announcements">
-        {% for announcement in site_wide_announcements %}
-        <div class="alert alert-block announcement">
-          <a type="button" class="close" data-dismiss="alert" data-dismiss-url="{% url "announcements_dismiss" announcement.pk %}" href="#">×</a>
-          <h4><a href="{{ announcement.get_absolute_url }}">{{ announcement }}</a></h4>
-          <p><small><em>{{ announcement.creation_date }}</em></small></p>
-          <div>{{ announcement.content }}</div>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
       <div class="container">
         <div class="row">
         {% block body_outer %}

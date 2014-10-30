@@ -1,4 +1,4 @@
-from geonode.upload2.apps import IngestApp
+from geonode.upload2.apps import IngestApp, async
 
 class LayerIngestApp(IngestApp):
     name = 'layers'
@@ -15,9 +15,14 @@ class LayerIngestApp(IngestApp):
         '''configure the task from the form'''
         raise Exception('implement me')
 
+    def init(self, upload_task):
+        pass
+
+    @async
     def ingest(self, file_group):
         '''perform any initial work'''
         pass
 
+    @async
     def publish(self, file_group):
         raise Exception('implement me')

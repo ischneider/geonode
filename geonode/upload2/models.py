@@ -34,6 +34,10 @@ from geonode.upload2 import apps
 upload_fs = FileSystemStorage(location=path.join(settings.MEDIA_ROOT, 'uploads'))
 
 
+class ProcessException(Exception):
+    pass
+
+
 class Upload(models.Model):
     '''Represents a transfer of files either by direct user upload or another
        process'''
@@ -60,18 +64,38 @@ class Upload(models.Model):
 
 
 class UploadTask(models.Model):
-    '''Configuration of how to process a FileGroup'''
-    # @todo - need to solidify/encapsulate JSON API
+    '''Configuration and state of processing a FileGroup'''
     configuration = jsonfield.JSONField()
-    status = models.TextField(null=True)
+    'app specific configuration'
+    state = jsonfield.JSONField()
+    'intermediate user input - mutable form data, etc'
+    step = models.TextField(default='initial')
+    'represents current state: initial, configure, ingest, publish, done'
+    status = models.TextField(default='ready')
+    'one of ready, queued, error'
+    progress = models.TextField(null=True)
+    'hold some app specific state of progress - descriptive'
 
 
 class FileGroup(models.Model):
     '''A set of files that will result in one resource object'''
     upload = models.ForeignKey(Upload, null=True)
-    # @todo - need to solidify/encapsulate JSON API
     name = models.TextField(null=True, blank=True)
     files = jsonfield.JSONField()
+    '''object with `type`(a subtype of the app), `main_file`(the main file), and
+    an optional other `object` with properties being lists of files. Arbitrary
+    app specific config could also be stored here. Paths are relative to the
+    upload root.
+    for example:
+        { type : 'shapefile', main_file : 'foo.shp',
+          other : {
+            dbf_file : [ 'foo.dbf' ],
+            ...
+          }
+          ...
+        }
+    }
+    '''
     app = models.TextField(null=True)
     task = models.ForeignKey(UploadTask, null=True)
     content_type = models.ForeignKey(ContentType, null=True)
@@ -81,38 +105,73 @@ class FileGroup(models.Model):
     def has_all_files_needed(self):
         '''check if all files needed are present'''
 
+    @property
+    def main_file(self):
+        return self.files.get('main_file', None)
+
+    @property
+    def app_file_type(self):
+        return self.files.get('type', 'Unknown')
+
+    @property
+    def all_files(self, subtype=None):
+        others = self.files.get('other', {})
+        if subtype:
+            return others.get(subtype, [])
+        else:
+            return reduce(lambda a,b: a.extend(b) or a, others.values(),
+                          filter(None,[self.main_file]))
 
 
-class UploadTaskResult(models.Model):
-    status = models.TextField()
-    result = jsonfield.JSONField()
+class _FileGroupBuilder(object):
 
+    def __init__(self, basedir):
+        self.basedir = basedir if basedir[-1] == path.sep else basedir + path.sep
+        self.found = []
 
-def _visit_file(collect, dirname, names):
-    spatial_files = files.scan_files(names)
-    # @todo eventually make extensible for other apps
-    full_paths = lambda p: [ path.join(dirname, f) for f in p ]
-    unrecognized = set(names)
-    for sf in spatial_files:
-        unrecognized.difference_update(sf.all_files())
-        data = {
-            'type' : sf.file_type.name,
-            'base_file' : path.join(dirname, sf.base_file),
-            'auxillary_files' : full_paths(sf.auxillary_files),
-            'sld_files' : full_paths(sf.sld_files),
-            'xml_files' : full_paths(sf.xml_files)
-        }
-        collect.append(FileGroup(app='layers', files=data, name=sf.base_file))
-    for f in unrecognized:
-        data =  {
-            'type' : 'data',
-            'base_file' : path.join(dirname, f)
-        }
-        collect.append(FileGroup(app='documents', files=data, name=f))
-    return collect
+    def _visit_file(self, ignore, dirname, names):
+        # @todo delegate fully to app
+        spatial_files = files.scan_files(names)
+        # @todo eventually make extensible for other apps
+        relative_path = dirname.replace(self.basedir, '')
+        full_paths = lambda p: [ path.join(relative_path, f) for f in p ]
+        unrecognized = set(names)
+        for sf in spatial_files:
+            unrecognized.difference_update(sf.all_files())
+            data = {
+                'type' : sf.file_type.name,
+                'main_file' : path.join(relative_path, sf.base_file),
+                'other' : {
+                    'auxillary_files' : full_paths(sf.auxillary_files),
+                    'sld_files' : full_paths(sf.sld_files),
+                    'xml_files' : full_paths(sf.xml_files)
+                }
+            }
+            self.found.append(FileGroup(app='layers', files=data, name=sf.base_file))
+        for f in unrecognized:
+            data =  {
+                'type' : 'data',
+                'main_file' : path.join(relative_path, f)
+            }
+            self.found.append(FileGroup(app='documents', files=data, name=f))
+        return self.found
 
 
 def scan_files(upload):
-    found = []
-    path.walk(upload.get_upload_path(), _visit_file, found)
-    return found
+    builder = _FileGroupBuilder(upload.get_upload_path())
+    path.walk(builder.basedir, builder._visit_file, None)
+    return builder.found
+
+
+def get_pending_uploads(user):
+    return FileGroup.objects.filter(upload__user=user, object_id=None)
+
+
+def process(file_group):
+    task = file_group.task
+    if task.status != 'ready':
+        raise ProcessException('task is not ready')
+    if task.state == 'done':
+        raise ProcessException('task is done')
+    app = apps.get_app(file_group.app)
+    #@todo

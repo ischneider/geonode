@@ -18,7 +18,7 @@
 #########################################################################
 from django.conf.urls import patterns, url
 from geonode.upload2.views import UploadDetail
-from geonode.upload2.views import FileGroupList
+from geonode.upload2.views import PendingFileGroups
 
 urlpatterns = patterns('geonode.upload2.views',
                        url(r'^new/$', 'upload', name='upload_new'),
@@ -26,5 +26,5 @@ urlpatterns = patterns('geonode.upload2.views',
                            UploadDetail.as_view(), name='upload_detail'),
                        url(r'^group/(?P<id>\d+)$', 'upload_group_configure', name='upload_group_configure'),
                        url(r'^group/(?P<id>\d+)/ingest$', 'upload_group_ingest', name='upload_group_ingest'),
-                       url(r'^pending', FileGroupList.as_view(), name='upload_pending'),
+                       url(r'^pending', PendingFileGroups.as_view(), name='upload_pending'),
                        )

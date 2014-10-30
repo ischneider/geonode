@@ -33,6 +33,8 @@ from geonode.upload2.models import Upload
 from geonode.upload2.models import UploadTask
 from geonode.upload2.models import FileGroup
 from geonode.upload2.models import scan_files
+from geonode.upload2.models import get_pending_uploads
+from geonode.upload2 import tasks
 from geonode.utils import json_response
 import logging
 
@@ -52,8 +54,10 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def upload(req):
-    if req.method == 'GET':
-        return render_to_response('upload2/new_upload.html', RequestContext(req,{}))
+    if req.method == 'GET' or len(req.FILES) == 0:
+        return render_to_response('upload2/new_upload.html', RequestContext(req,{
+            'pending': get_pending_uploads(req.user).count()
+        }))
 
     upload = Upload(user=req.user)
     try:
@@ -68,9 +72,13 @@ def upload(req):
         upload.delete_files()
         raise
 
+    # @todo specified permissions should be defaults for FileGroups that can
+    # be overridden
+
     file_groups = scan_files(upload)
     upload.save()
     for f in file_groups:
+        f.task = UploadTask.objects.create()
         f.upload = upload
         f.save()
 
@@ -114,10 +122,10 @@ class UploadDetail(DetailView):
     slug_field = 'uuid'
 
 
-class FileGroupList(ListView):
+class PendingFileGroups(ListView):
     model = FileGroup
     def get_queryset(self):
-        print dir(self)
+        return get_pending_uploads(self.request.user)
 
 
 @login_required
@@ -131,11 +139,8 @@ def upload_group_configure(req, id):
     default_redirect = reverse('upload_pending')
     if req.method == 'POST':
         if form.is_valid():
-            if fg.task is None:
-                task = fg.task = UploadTask()
-                fg.save()
-            app.configure(task, form)
-            task.save()
+            app.configure(fg.task, form)
+            fg.task.save()
             return _redirect(req, default_redirect)
 
     return  render_to_response(template, RequestContext(req,{
@@ -145,8 +150,16 @@ def upload_group_configure(req, id):
     }))
 
 
+@login_required
 def upload_group_ingest(req, id):
-    pass
+    fg = get_object_or_404(FileGroup, pk=id)
+    if fg.upload.user != req.user:
+        raise PermissionDenied()
+    app = get_app(fg.app)
+    if getattr(app.ingest, 'async', False):
+        tasks.ingest.apply_async(args=[id], queue='upload')
+    else:
+        app.ingest(fg)
 
 
 @login_required

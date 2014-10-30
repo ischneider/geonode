@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 #########################################################################
-from geonode.upload2.models import _visit_file
+from geonode.upload2.models import _FileGroupBuilder
 from geonode.upload2.models import Upload
 from django.core.urlresolvers import reverse
 from django.test import TestCase
@@ -24,13 +24,21 @@ from django.test.client import Client
 
 
 def test_scanning():
-    found = _visit_file([], 'place', ['a.shp','a.DBF','x.doc'])
+    builder = _FileGroupBuilder('/path/before')
+    found = builder._visit_file([], '/path/before/place', ['a.shp','a.DBF','x.doc'])
     def get(name):
         for f in found:
-            if f.files['base_file'].startswith(name):
+            if f.main_file.startswith(name):
                 return f
     assert len(found) == 2
-    assert get('place/a').files['base_file'] == 'place/a.shp'
+    a = get('place/a')
+    assert a.main_file == 'place/a.shp'
+    all_files = a.all_files
+    assert 'place/a.shp' in all_files
+    assert 'place/a.DBF' in all_files
+    x = get('place/x')
+    assert x.main_file == 'place/x.doc'
+    assert x.all_files == ['place/x.doc']
 
 
 class ViewTests(TestCase):
@@ -57,3 +65,4 @@ class ViewTests(TestCase):
             'somefile' : open('README', 'rb')
         })
         upload = Upload.objects.latest('id')
+        # @todo assertions

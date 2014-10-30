@@ -12,9 +12,26 @@
 {{ block.super }}
 {% endblock %}
 
+{% block sidebar %}
+
+{% if GEONODE_SECURITY_ENABLED %}
+<div class="col-md-4">
+  <h3>{% trans "Permissions"  %}</h3>
+  <form id="permission_form">
+    {% include "_permissions.html" %}
+  </form>
+</div>
+{% endif %}
+
+{% endblock %}
+
 {% block body %}
 
   <div class="col-md-8">
+
+    {% if pending %}
+    <a href="{% url 'upload_pending' %}"><h3>You Have Pending Uploads</h3></a>
+    {% endif %}
 
     <section id="drop-zone">
       <h3><i class="fa fa-cloud-upload"></i><br />{% trans "Drop files here" %}</h3>
@@ -25,10 +42,29 @@
     <form id="file-uploader" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <input name="files" class="btn" id="file-input" type="file" multiple>
+      <input name="permissions" type="hidden">
       <button class="btn btn-primary">Upload</button>
     </form>
 
   </div>
+{% endblock %}
+
+{% block extra_script %}
+{% if GEONODE_SECURITY_ENABLED %}
+{% include "_permissions_form_js.html" %}
+<script type='text/javascript'>
+    $(function() {
+        $("#file-uploader").on('submit', function(ev) {
+            var form = $("#permission_form");
+            if (form.length == 0) {
+                alert('bad form id');
+            }
+            var json = JSON.stringify(permissionsString(form));
+            $("#file-uploader input[name=permissions]").val(json);
+        });
+    });
+</script>
+{% endif %}
 {% endblock %}
 
 

@@ -281,6 +281,7 @@ INSTALLED_APPS = (
     'django.contrib.gis',
 
     # Third party apps
+    'kombu.transport.django',
 
     # Utility
     'pagination',
@@ -681,6 +682,9 @@ LICENSES = {
     'DETAIL': 'above',
     'METADATA': 'verbose',
 }
+
+SERVICE_UPDATE_INTERVAL = 59
+BROKER_URL = 'django://'
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.PickleSerializer'
 
