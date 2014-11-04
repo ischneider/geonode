@@ -1,3 +1,4 @@
+import os
 from geonode.upload2.apps import IngestApp
 from django import forms
 from django.forms import TextInput
@@ -5,6 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from modeltranslation.forms import TranslationModelForm
 from geonode.documents.models import Document
 from geonode.documents.forms import DocumentCreateForm
+from django.core.files import File
 
 
 class DocumentIngestApp(IngestApp):
@@ -22,15 +24,20 @@ class DocumentIngestApp(IngestApp):
         '''configure the task from the form'''
         upload_task.state['form'] = form.cleaned_data
 
-    def publish(self, file_group):
+    def ingest(self, file_group, user):
         form_data = file_group.task.state['form']
-        form_data['doc_file'] = file_group.main_file
-        form = DocumentForm(form_data)
-        form.save()
+        doc = Document(
+            title=form_data['title'], 
+            doc_file=File(open(os.path.join(file_group.upload.get_upload_path(),file_group.main_file))),
+            owner = user
+            )
+        doc.save()
+        file_group.task.status = 'done'
+        file_group.task.save()
+        return doc.get_absolute_url()
 
 
 class DocumentForm(TranslationModelForm):
-    model = Document
     title = forms.CharField(required=True, label=_("Title"))
     resource = forms.CharField(required=False, label=_("Link to"),
     widget=TextInput(attrs={'name': 'q',

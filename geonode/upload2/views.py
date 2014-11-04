@@ -78,7 +78,7 @@ def upload(req):
     file_groups = scan_files(upload)
     upload.save()
     for f in file_groups:
-        f.task = UploadTask.objects.create()
+        f.task = UploadTask.objects.create(status='pending')
         f.upload = upload
         f.save()
 
@@ -159,7 +159,7 @@ def upload_group_ingest(req, id):
     if getattr(app.ingest, 'async', False):
         tasks.ingest.apply_async(args=[id], queue='upload')
     else:
-        app.ingest(fg)
+        return HttpResponseRedirect(app.ingest(fg, fg.upload.user))
 
 
 @login_required

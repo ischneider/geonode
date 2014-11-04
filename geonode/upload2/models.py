@@ -164,7 +164,7 @@ def scan_files(upload):
 
 
 def get_pending_uploads(user):
-    return FileGroup.objects.filter(upload__user=user, object_id=None)
+    return FileGroup.objects.filter(upload__user=user, task__status='pending')
 
 
 def process(file_group):
