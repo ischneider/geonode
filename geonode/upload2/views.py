@@ -34,7 +34,6 @@ from geonode.upload2.models import UploadTask
 from geonode.upload2.models import FileGroup
 from geonode.upload2.models import scan_files
 from geonode.upload2.models import get_pending_uploads
-from geonode.upload2 import tasks
 from geonode.utils import json_response
 import logging
 

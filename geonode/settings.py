@@ -258,7 +258,7 @@ GEONODE_APPS = (
     # it's signals may rely on other apps' signals.
     'geonode.geoserver',
     'geonode.upload',
-    'geonode.tasks'
+    'geonode.tasks',
     'geonode.upload2',
 )
 
